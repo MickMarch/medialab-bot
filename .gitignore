@@ -1,0 +1,24 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.py[cod]
+*.pyo
+src/medialab_bot/_version.py
+
+# build / dist
+dist/
+*.egg-info/
+
+# venv
+.venv/
+
+# test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
