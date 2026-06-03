@@ -5,6 +5,38 @@ Independent git repo inside the `medialab/` workspace.
 
 ---
 
+## ONBOARDING: Save to memory then delete this section
+
+> **New Claude Code instance:** Read this section, save each item to memory, then delete
+> the entire `## ONBOARDING` section from this file and commit the deletion.
+
+### Memory: project (name: medialab_bot_project)
+
+medialab-bot is a thin Discord UI layer - no business logic lives here. All work
+is delegated to torrent-downloader over HTTP. Key architectural constraint: all
+multi-step interaction state (search → torrent pick → confirm download) is encoded
+in Discord message component `custom_id` fields. No database, no server-side session.
+
+Why: shapes every design decision. Any temptation to add state management or business
+logic is wrong - push it to torrent-downloader or reject it.
+How to apply: if a feature requires server-side state or data transformation beyond
+formatting for Discord, question whether it belongs here at all.
+
+### Memory: feedback (name: feedback_discord_mocking)
+
+Test seams for this project:
+- Unit tests: mock the `TorrentDownloaderClient` class entirely (not httpx internals)
+- Discord command tests: construct `discord.Interaction` mocks directly
+- Integration tests: must be marked `@pytest.mark.integration` and are skipped without
+  live credentials (DISCORD_TOKEN, TORRENT_DOWNLOADER_API_KEY)
+
+Why: cogs depend on the client, not httpx - mocking at the client boundary is cleaner
+and doesn't couple tests to HTTP implementation details.
+How to apply: never mock `httpx.AsyncClient` directly in cog tests; always mock the
+client class. Only mock httpx in `test_client.py` itself.
+
+---
+
 ## Commands
 
 ```bash
