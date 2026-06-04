@@ -119,3 +119,27 @@ async def test_search_tmdb_returns_none_on_connect_error(client):
         result = await client.search_tmdb("dune")
 
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_search_tmdb_returns_none_on_bad_json(client):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.side_effect = ValueError("bad json")
+
+    with patch.object(client._http, "get", new=AsyncMock(return_value=mock_response)):
+        result = await client.search_tmdb("dune")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_health_returns_none_on_bad_json(client):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.side_effect = ValueError("bad json")
+
+    with patch.object(client._http, "get", new=AsyncMock(return_value=mock_response)):
+        result = await client.health()
+
+    assert result is None

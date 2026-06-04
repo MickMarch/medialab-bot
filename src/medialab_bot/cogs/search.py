@@ -25,9 +25,16 @@ class TmdbSelectMenu(discord.ui.View):
         self.add_item(self.select)
 
     async def _on_select(self, interaction: discord.Interaction) -> None:
-        value = interaction.data["values"][0]
-        tmdb_id, _ = value.split(":", 1)
-        result = self._results[tmdb_id]
+        try:
+            value = interaction.data["values"][0]
+            tmdb_id, _ = value.split(":", 1)
+            result = self._results[tmdb_id]
+        except (KeyError, IndexError, ValueError):
+            await interaction.response.send_message(
+                "Something went wrong with your selection. Please try again.",
+                ephemeral=True,
+            )
+            return
         await interaction.response.send_message(
             f"Selected: **{result.title}** ({result.year})",
             ephemeral=True,
@@ -40,10 +47,11 @@ class SearchCog(commands.Cog):
 
     @app_commands.command(name="search", description="Search TMDB for movies and TV shows")
     async def search(self, interaction: discord.Interaction, query: str) -> None:
+        await interaction.response.defer()
         response = await self._client.search_tmdb(query)
 
         if response is None or not response.data:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "No results found. Try a different query.",
                 ephemeral=True,
             )
@@ -51,6 +59,6 @@ class SearchCog(commands.Cog):
 
         embed = search_results_embed(response.data)
         view = TmdbSelectMenu(response.data)
-        await interaction.response.send_message(embed=embed, view=view)
+        await interaction.followup.send(embed=embed, view=view)
 
 

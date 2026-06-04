@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from medialab_bot.schemas.tmdb import TmdbSearchResponse, TmdbSearchResult
 from medialab_bot.cogs.search import SearchCog
@@ -32,6 +32,17 @@ def _make_interaction() -> MagicMock:
 
 
 @pytest.mark.asyncio
+async def test_search_defers_before_api_call(mock_client):
+    mock_client.search_tmdb = AsyncMock(return_value=_make_response([_make_result()]))
+    cog = SearchCog(mock_client)
+    interaction = _make_interaction()
+
+    await cog.search.callback(cog, interaction, query="dune")
+
+    interaction.response.defer.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_search_sends_embed_and_view_on_results(mock_client):
     mock_client.search_tmdb = AsyncMock(return_value=_make_response([_make_result()]))
     cog = SearchCog(mock_client)
@@ -40,8 +51,8 @@ async def test_search_sends_embed_and_view_on_results(mock_client):
     await cog.search.callback(cog, interaction, query="dune")
 
     mock_client.search_tmdb.assert_awaited_once_with("dune")
-    interaction.response.send_message.assert_awaited_once()
-    call_kwargs = interaction.response.send_message.call_args.kwargs
+    interaction.followup.send.assert_awaited_once()
+    call_kwargs = interaction.followup.send.call_args.kwargs
     assert call_kwargs.get("embed") is not None
     assert call_kwargs.get("view") is not None
 
@@ -54,8 +65,8 @@ async def test_search_sends_ephemeral_error_on_empty_results(mock_client):
 
     await cog.search.callback(cog, interaction, query="xyzzy")
 
-    interaction.response.send_message.assert_awaited_once()
-    call_kwargs = interaction.response.send_message.call_args.kwargs
+    interaction.followup.send.assert_awaited_once()
+    call_kwargs = interaction.followup.send.call_args.kwargs
     assert call_kwargs.get("ephemeral") is True
 
 
@@ -67,8 +78,8 @@ async def test_search_sends_ephemeral_error_on_client_none(mock_client):
 
     await cog.search.callback(cog, interaction, query="dune")
 
-    interaction.response.send_message.assert_awaited_once()
-    call_kwargs = interaction.response.send_message.call_args.kwargs
+    interaction.followup.send.assert_awaited_once()
+    call_kwargs = interaction.followup.send.call_args.kwargs
     assert call_kwargs.get("ephemeral") is True
 
 
@@ -79,12 +90,28 @@ async def test_select_callback_replies_with_selected_title(mock_client):
     results = [_make_result(tmdb_id=42, title="Dune")]
     view = TmdbSelectMenu(results)
     interaction = _make_interaction()
-    interaction.data = {"values": ["42:movie"]}
+    interaction.configure_mock(data={"values": ["42:movie"]})
 
     await view.select.callback(interaction)
 
     interaction.response.send_message.assert_awaited_once()
-    call_args = interaction.response.send_message.call_args
-    content = call_args.args[0] if call_args.args else call_args.kwargs.get("content", "")
+    call = interaction.response.send_message.call_args
+    content = call.args[0] if call.args else call.kwargs.get("content", "")
     assert "Dune" in content
     assert "2024" in content
+
+
+@pytest.mark.asyncio
+async def test_select_callback_handles_malformed_data(mock_client):
+    from medialab_bot.cogs.search import TmdbSelectMenu
+
+    results = [_make_result(tmdb_id=42, title="Dune")]
+    view = TmdbSelectMenu(results)
+    interaction = _make_interaction()
+    interaction.data = {}
+
+    await view.select.callback(interaction)
+
+    interaction.response.send_message.assert_awaited_once()
+    call_kwargs = interaction.response.send_message.call_args.kwargs
+    assert call_kwargs.get("ephemeral") is True
