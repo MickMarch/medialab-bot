@@ -54,5 +54,3 @@ class SearchCog(commands.Cog):
         await interaction.response.send_message(embed=embed, view=view)
 
 
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(SearchCog(bot.torrent_client))
