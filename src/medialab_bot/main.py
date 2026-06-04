@@ -27,9 +27,13 @@ async def _run(config: AppConfig) -> None:
 
     intents = discord.Intents.default()
     bot = commands.Bot(command_prefix="/", intents=intents)
+    bot.torrent_client = client
+
+    await bot.load_extension("medialab_bot.cogs.search")
 
     @bot.event
     async def on_ready() -> None:
+        await bot.tree.sync(guild=discord.Object(id=config.discord_guild_id))
         logger.info("Logged in as %s", bot.user)
 
     try:

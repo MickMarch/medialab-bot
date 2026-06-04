@@ -3,6 +3,7 @@ from typing import Self
 import httpx
 
 from medialab_bot.schemas.system import HealthResponse
+from medialab_bot.schemas.tmdb import TmdbSearchResponse
 
 
 class TorrentDownloaderClient:
@@ -20,6 +21,15 @@ class TorrentDownloaderClient:
         if response.status_code != 200:
             return None
         return HealthResponse(**response.json())
+
+    async def search_tmdb(self, query: str) -> TmdbSearchResponse | None:
+        try:
+            response = await self._http.get("/api/v1/search/tmdb", params={"query": query})
+        except httpx.ConnectError:
+            return None
+        if response.status_code != 200:
+            return None
+        return TmdbSearchResponse(**response.json())
 
     async def close(self) -> None:
         await self._http.aclose()
