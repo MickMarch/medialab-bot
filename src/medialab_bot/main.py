@@ -7,6 +7,7 @@ from discord.ext import commands
 from medialab_bot.client import TorrentDownloaderClient
 from medialab_bot.config import AppConfig
 from medialab_bot.cogs.search import SearchCog
+from medialab_bot.cogs.status import StatusCog
 
 
 async def _run(config: AppConfig) -> None:
@@ -33,6 +34,7 @@ async def _run(config: AppConfig) -> None:
     class Bot(commands.Bot):
         async def setup_hook(self) -> None:
             await self.add_cog(SearchCog(client))
+            await self.add_cog(StatusCog(client))
             self.tree.copy_global_to(guild=guild)
             synced = await self.tree.sync(guild=guild)
             logger.info("Synced %d commands to guild %d", len(synced), config.discord_guild_id)
