@@ -1,6 +1,14 @@
-from medialab_bot.schemas.system import HealthResponse
-from medialab_bot.schemas.tmdb import TmdbSearchResult, TmdbSearchResponse
+import pytest
 
+from medialab_bot.schemas.system import HealthResponse, DiskUsage, StorageResponse
+from medialab_bot.schemas.tmdb import TmdbSearchResult, TmdbSearchResponse, TmdbMediaDetailResponse
+from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
+from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
+from medialab_bot.schemas.downloads import DownloadRequest, DownloadResponse
+from medialab_bot.schemas.errors import ErrorResponse
+
+
+# --- system ---
 
 def test_health_response_parses():
     data = {"status": "online", "uptime_seconds": 123.45, "vpn_interface_bound": True}
@@ -15,6 +23,19 @@ def test_health_response_vpn_false():
     model = HealthResponse(**data)
     assert model.vpn_interface_bound is False
 
+
+def test_storage_response_parses():
+    data = {
+        "status": "success",
+        "message": "",
+        "data": {"path": "/media", "total_gb": 2000.0, "used_gb": 800.0, "free_gb": 1200.0, "used_percent": 40.0},
+    }
+    response = StorageResponse(**data)
+    assert response.data.free_gb == 1200.0
+    assert isinstance(response.data, DiskUsage)
+
+
+# --- tmdb ---
 
 def test_tmdb_search_result_parses():
     data = {
@@ -65,3 +86,139 @@ def test_tmdb_search_response_parses():
     response = TmdbSearchResponse(**data)
     assert len(response.data) == 1
     assert response.data[0].title == "Movie A"
+
+
+def test_tmdb_media_detail_response_parses_with_data():
+    data = {"status": "success", "message": "", "data": {"title": "Dune", "tmdb_id": 438631}}
+    response = TmdbMediaDetailResponse(**data)
+    assert response.data["title"] == "Dune"
+
+
+def test_tmdb_media_detail_response_parses_null_data():
+    data = {"status": "success", "message": "", "data": None}
+    response = TmdbMediaDetailResponse(**data)
+    assert response.data is None
+
+
+# --- torrents ---
+
+def test_torrent_result_parses():
+    data = {
+        "fileName": "Dune.2021.1080p.BluRay.mkv",
+        "fileUrl": "magnet:?xt=urn:btih:abc123",
+        "nbSeeders": 150,
+        "nbLeechers": 10,
+        "fileSize": 10_000_000_000,
+    }
+    result = TorrentResult(**data)
+    assert result.fileName == "Dune.2021.1080p.BluRay.mkv"
+    assert result.nbSeeders == 150
+    assert result.fileSize == 10_000_000_000
+
+
+def test_torrent_search_response_parses_grouped_by_resolution():
+    data = {
+        "status": "success",
+        "message": "",
+        "data": {
+            "1080p": [
+                {
+                    "fileName": "Dune.1080p.mkv",
+                    "fileUrl": "magnet:?xt=urn:btih:abc",
+                    "nbSeeders": 100,
+                    "nbLeechers": 5,
+                    "fileSize": 8_000_000_000,
+                }
+            ],
+            "720p": [
+                {
+                    "fileName": "Dune.720p.mkv",
+                    "fileUrl": "magnet:?xt=urn:btih:def",
+                    "nbSeeders": 50,
+                    "nbLeechers": 2,
+                    "fileSize": 4_000_000_000,
+                }
+            ],
+        },
+    }
+    response = TorrentSearchResponse(**data)
+    assert "1080p" in response.data
+    assert len(response.data["1080p"]) == 1
+    assert response.data["1080p"][0].fileName == "Dune.1080p.mkv"
+
+
+def test_torrent_search_response_parses_empty_data():
+    data = {"status": "success", "message": "No results.", "data": {}}
+    response = TorrentSearchResponse(**data)
+    assert response.data == {}
+
+
+# --- transfers ---
+
+def test_transfer_info_parses():
+    data = {
+        "name": "Dune.2021.mkv",
+        "size": 8_000_000_000,
+        "progress": 0.45,
+        "hash": "abc123",
+        "state": "downloading",
+        "download_speed": 5_000_000,
+        "upload_speed": 0,
+        "eta_seconds": 900,
+        "save_path": "/media/downloads",
+    }
+    info = TransferInfo(**data)
+    assert info.name == "Dune.2021.mkv"
+    assert info.progress == 0.45
+    assert info.state == "downloading"
+
+
+def test_transfer_info_response_parses():
+    transfer = {
+        "name": "Movie.mkv",
+        "size": 1_000_000,
+        "progress": 1.0,
+        "hash": "deadbeef",
+        "state": "seeding",
+        "download_speed": 0,
+        "upload_speed": 1_000,
+        "eta_seconds": 0,
+        "save_path": "/media/downloads",
+    }
+    data = {"status": "success", "message": "", "data": [transfer]}
+    response = TransferInfoResponse(**data)
+    assert len(response.data) == 1
+    assert response.data[0].state == "seeding"
+
+
+def test_transfer_info_response_empty():
+    data = {"status": "success", "message": "", "data": []}
+    response = TransferInfoResponse(**data)
+    assert response.data == []
+
+
+# --- downloads ---
+
+def test_download_request_parses():
+    req = DownloadRequest(magnet_uri="magnet:?xt=urn:btih:abc", save_path="/media/downloads")
+    assert req.dry_run is False
+    assert req.magnet_uri == "magnet:?xt=urn:btih:abc"
+
+
+def test_download_request_dry_run():
+    req = DownloadRequest(magnet_uri="magnet:?xt=urn:btih:abc", save_path="/media/downloads", dry_run=True)
+    assert req.dry_run is True
+
+
+def test_download_response_parses():
+    resp = DownloadResponse(status="success", message="Torrent added.")
+    assert resp.status == "success"
+
+
+# --- errors ---
+
+def test_error_response_parses():
+    data = {"status": "error", "code": "UNAUTHORIZED", "detail": "Missing API key."}
+    err = ErrorResponse(**data)
+    assert err.code == "UNAUTHORIZED"
+    assert err.status == "error"

@@ -8,4 +8,5 @@ class AppConfig(BaseSettings):
     discord_guild_id: int
     torrent_downloader_url: str
     torrent_downloader_api_key: str
+    torrent_save_path: str
     log_level: str = "INFO"

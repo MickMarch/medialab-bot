@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -15,3 +17,9 @@ class TmdbSearchResponse(BaseModel):
     status: str
     message: str
     data: list[TmdbSearchResult]
+
+
+class TmdbMediaDetailResponse(BaseModel):
+    status: str
+    message: str
+    data: dict[str, Any] | None
