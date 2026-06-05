@@ -43,7 +43,7 @@ class TmdbSelectMenu(discord.ui.View):
             )
             return
 
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(
             content=f"Searching for torrents matching **{result.title} ({result.year})**...",
             view=None,

@@ -33,9 +33,9 @@ class _BaseClient:
             logger.error("GET %s returned non-JSON response", path)
             return None
 
-    async def _post(self, path: str, json: dict | None = None, expected_status: int = 200) -> dict | None:
+    async def _post(self, path: str, json: dict | None = None, expected_status: int = 200, timeout: float | None = None) -> dict | None:
         try:
-            response = await self._http.post(path, json=json or {})
+            response = await self._http.post(path, json=json or {}, timeout=timeout)
             if response.status_code != expected_status:
                 logger.warning("POST %s returned %d", path, response.status_code)
                 return None
