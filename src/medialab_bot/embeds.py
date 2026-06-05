@@ -1,6 +1,6 @@
 import discord
 
-from medialab_bot.schemas.system import StorageResponse
+from medialab_bot.schemas.system import DiskUsageResponse
 from medialab_bot.schemas.transfers import TransferInfoResponse
 
 
@@ -17,11 +17,13 @@ def transfers_embed(response: TransferInfoResponse) -> discord.Embed:
     return embed
 
 
-def storage_embed(response: StorageResponse) -> discord.Embed:
-    d = response.data
+def storage_embed(response: DiskUsageResponse) -> discord.Embed:
+    d = response
     embed = discord.Embed(title="Storage", color=discord.Color.blue())
     embed.add_field(name="Path", value=d.path, inline=False)
     embed.add_field(name="Total", value=f"{d.total_gb:.1f} GB", inline=True)
-    embed.add_field(name="Used", value=f"{d.used_gb:.1f} GB ({d.used_percent:.1f}%)", inline=True)
+    embed.add_field(
+        name="Used", value=f"{d.used_gb:.1f} GB ({d.used_percent:.1f}%)", inline=True
+    )
     embed.add_field(name="Free", value=f"{d.free_gb:.1f} GB", inline=True)
     return embed

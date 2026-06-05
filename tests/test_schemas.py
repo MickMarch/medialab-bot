@@ -1,14 +1,16 @@
-import pytest
-
-from medialab_bot.schemas.system import HealthResponse, DiskUsage, StorageResponse
-from medialab_bot.schemas.tmdb import TmdbSearchResult, TmdbSearchResponse, TmdbMediaDetailResponse
-from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
-from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
 from medialab_bot.schemas.downloads import DownloadResponse
 from medialab_bot.schemas.errors import ErrorResponse
-
+from medialab_bot.schemas.system import DiskUsageResponse, HealthResponse
+from medialab_bot.schemas.tmdb import (
+    TmdbMediaDetailResponse,
+    TmdbSearchResponse,
+    TmdbSearchResult,
+)
+from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
+from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
 
 # --- system ---
+
 
 def test_health_response_parses():
     data = {"status": "online", "uptime_seconds": 123.45, "vpn_interface_bound": True}
@@ -27,15 +29,18 @@ def test_health_response_vpn_false():
 def test_storage_response_parses():
     data = {
         "status": "success",
-        "message": "",
-        "data": {"path": "/media", "total_gb": 2000.0, "used_gb": 800.0, "free_gb": 1200.0, "used_percent": 40.0},
+        "path": "/media",
+        "total_gb": 2000.0,
+        "used_gb": 800.0,
+        "free_gb": 1200.0,
+        "used_percent": 40.0,
     }
-    response = StorageResponse(**data)
-    assert response.data.free_gb == 1200.0
-    assert isinstance(response.data, DiskUsage)
+    response = DiskUsageResponse(**data)
+    assert response.free_gb == 1200.0
 
 
 # --- tmdb ---
+
 
 def test_tmdb_search_result_parses():
     data = {
@@ -89,7 +94,11 @@ def test_tmdb_search_response_parses():
 
 
 def test_tmdb_media_detail_response_parses_with_data():
-    data = {"status": "success", "message": "", "data": {"title": "Dune", "tmdb_id": 438631}}
+    data = {
+        "status": "success",
+        "message": "",
+        "data": {"title": "Dune", "tmdb_id": 438631},
+    }
     response = TmdbMediaDetailResponse(**data)
     assert response.data["title"] == "Dune"
 
@@ -101,6 +110,7 @@ def test_tmdb_media_detail_response_parses_null_data():
 
 
 # --- torrents ---
+
 
 def test_torrent_result_parses():
     data = {
@@ -155,6 +165,7 @@ def test_torrent_search_response_parses_empty_data():
 
 # --- transfers ---
 
+
 def test_transfer_info_parses():
     data = {
         "name": "Dune.2021.mkv",
@@ -199,12 +210,14 @@ def test_transfer_info_response_empty():
 
 # --- downloads ---
 
+
 def test_download_response_parses():
     resp = DownloadResponse(status="success", message="Torrent added.")
     assert resp.status == "success"
 
 
 # --- errors ---
+
 
 def test_error_response_parses():
     data = {"status": "error", "code": "UNAUTHORIZED", "detail": "Missing API key."}

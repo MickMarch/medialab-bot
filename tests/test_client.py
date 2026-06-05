@@ -1,23 +1,29 @@
-import pytest
-import httpx
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
+import pytest
+
 from medialab_bot.client import TorrentDownloaderClient
-from medialab_bot.schemas.system import HealthResponse
-from medialab_bot.schemas.tmdb import TmdbSearchResponse, TmdbMediaDetailResponse
+from medialab_bot.schemas.downloads import DownloadResponse
+from medialab_bot.schemas.system import DiskUsageResponse, HealthResponse
+from medialab_bot.schemas.tmdb import TmdbMediaDetailResponse, TmdbSearchResponse
 from medialab_bot.schemas.torrents import TorrentSearchResponse
 from medialab_bot.schemas.transfers import TransferInfoResponse
-from medialab_bot.schemas.downloads import DownloadResponse
-from medialab_bot.schemas.system import StorageResponse
 
 BASE_URL = "http://localhost:8000"
 API_KEY = "test-key"
 SAVE_PATH = "/media/downloads"
+TMP_DOCKER_SAVE_PATH = "/tmp/downloads"
 
 
 @pytest.fixture
 def client():
-    return TorrentDownloaderClient(base_url=BASE_URL, api_key=API_KEY, save_path=SAVE_PATH)
+    return TorrentDownloaderClient(
+        base_url=BASE_URL,
+        api_key=API_KEY,
+        save_path=SAVE_PATH,
+        tmp_docker_save_path=TMP_DOCKER_SAVE_PATH,
+    )
 
 
 def _mock_response(status_code: int, payload: dict | None = None) -> MagicMock:
@@ -30,6 +36,7 @@ def _mock_response(status_code: int, payload: dict | None = None) -> MagicMock:
 
 # --- infrastructure ---
 
+
 @pytest.mark.asyncio
 async def test_api_key_set_in_headers(client):
     assert client._http.headers.get("x-api-key") == API_KEY
@@ -37,17 +44,25 @@ async def test_api_key_set_in_headers(client):
 
 @pytest.mark.asyncio
 async def test_context_manager_closes_client():
-    async with TorrentDownloaderClient(base_url=BASE_URL, api_key=API_KEY, save_path=SAVE_PATH) as c:
+    async with TorrentDownloaderClient(
+        base_url=BASE_URL,
+        api_key=API_KEY,
+        save_path=SAVE_PATH,
+        tmp_docker_save_path=TMP_DOCKER_SAVE_PATH,
+    ) as c:
         assert c is not None
     assert c._http.is_closed
 
 
 # --- health ---
 
+
 @pytest.mark.asyncio
 async def test_health_returns_response_on_200(client):
     payload = {"status": "online", "uptime_seconds": 55.0, "vpn_interface_bound": True}
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ):
         result = await client.health()
     assert isinstance(result, HealthResponse)
     assert result.status == "online"
@@ -55,14 +70,18 @@ async def test_health_returns_response_on_200(client):
 
 @pytest.mark.asyncio
 async def test_health_returns_none_on_non_200(client):
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(503))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(503))
+    ):
         result = await client.health()
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_health_returns_none_on_connect_error(client):
-    with patch.object(client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))
+    ):
         result = await client.health()
     assert result is None
 
@@ -77,6 +96,7 @@ async def test_health_returns_none_on_bad_json(client):
 
 
 # --- search_tmdb ---
+
 
 @pytest.mark.asyncio
 async def test_search_tmdb_returns_response_on_200(client):
@@ -95,7 +115,9 @@ async def test_search_tmdb_returns_response_on_200(client):
             }
         ],
     }
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ):
         result = await client.search_tmdb("dune")
     assert isinstance(result, TmdbSearchResponse)
     assert result.data[0].title == "Dune"
@@ -103,14 +125,18 @@ async def test_search_tmdb_returns_response_on_200(client):
 
 @pytest.mark.asyncio
 async def test_search_tmdb_returns_none_on_non_200(client):
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(429))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(429))
+    ):
         result = await client.search_tmdb("dune")
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_search_tmdb_returns_none_on_connect_error(client):
-    with patch.object(client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))
+    ):
         result = await client.search_tmdb("dune")
     assert result is None
 
@@ -126,10 +152,17 @@ async def test_search_tmdb_returns_none_on_bad_json(client):
 
 # --- search_tmdb_movie ---
 
+
 @pytest.mark.asyncio
 async def test_search_tmdb_movie_returns_response_on_200(client):
-    payload = {"status": "success", "message": "", "data": {"title": "Dune", "tmdb_id": 438631}}
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))):
+    payload = {
+        "status": "success",
+        "message": "",
+        "data": {"title": "Dune", "tmdb_id": 438631},
+    }
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ):
         result = await client.search_tmdb_movie(438631)
     assert isinstance(result, TmdbMediaDetailResponse)
     assert result.data["title"] == "Dune"
@@ -147,24 +180,35 @@ async def test_search_tmdb_movie_calls_correct_path(client):
 
 @pytest.mark.asyncio
 async def test_search_tmdb_movie_returns_none_on_non_200(client):
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(404))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(404))
+    ):
         result = await client.search_tmdb_movie(999)
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_search_tmdb_movie_returns_none_on_connect_error(client):
-    with patch.object(client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))
+    ):
         result = await client.search_tmdb_movie(438631)
     assert result is None
 
 
 # --- search_tmdb_show ---
 
+
 @pytest.mark.asyncio
 async def test_search_tmdb_show_returns_response_on_200(client):
-    payload = {"status": "success", "message": "", "data": {"name": "Breaking Bad", "tmdb_id": 1396}}
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))):
+    payload = {
+        "status": "success",
+        "message": "",
+        "data": {"name": "Breaking Bad", "tmdb_id": 1396},
+    }
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ):
         result = await client.search_tmdb_show(1396)
     assert isinstance(result, TmdbMediaDetailResponse)
     assert result.data["name"] == "Breaking Bad"
@@ -182,12 +226,15 @@ async def test_search_tmdb_show_calls_correct_path(client):
 
 @pytest.mark.asyncio
 async def test_search_tmdb_show_returns_none_on_non_200(client):
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(404))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(404))
+    ):
         result = await client.search_tmdb_show(999)
     assert result is None
 
 
 # --- search_torrents ---
+
 
 @pytest.mark.asyncio
 async def test_search_torrents_returns_response_on_200(client):
@@ -206,7 +253,9 @@ async def test_search_torrents_returns_response_on_200(client):
             ]
         },
     }
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ):
         result = await client.search_torrents("dune")
     assert isinstance(result, TorrentSearchResponse)
     assert "1080p" in result.data
@@ -224,24 +273,31 @@ async def test_search_torrents_passes_query_param(client):
 
 @pytest.mark.asyncio
 async def test_search_torrents_returns_none_on_non_200(client):
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(429))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(429))
+    ):
         result = await client.search_torrents("dune")
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_search_torrents_returns_none_on_connect_error(client):
-    with patch.object(client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))
+    ):
         result = await client.search_torrents("dune")
     assert result is None
 
 
 # --- download ---
 
+
 @pytest.mark.asyncio
 async def test_download_returns_response_on_202(client):
     payload = {"status": "success", "message": "Torrent added to queue."}
-    with patch.object(client._http, "post", new=AsyncMock(return_value=_mock_response(202, payload))):
+    with patch.object(
+        client._http, "post", new=AsyncMock(return_value=_mock_response(202, payload))
+    ):
         result = await client.download("magnet:?xt=urn:btih:abc")
     assert isinstance(result, DownloadResponse)
     assert result.status == "success"
@@ -261,19 +317,24 @@ async def test_download_sends_save_path_from_config(client):
 
 @pytest.mark.asyncio
 async def test_download_returns_none_on_non_202(client):
-    with patch.object(client._http, "post", new=AsyncMock(return_value=_mock_response(503))):
+    with patch.object(
+        client._http, "post", new=AsyncMock(return_value=_mock_response(503))
+    ):
         result = await client.download("magnet:?xt=urn:btih:abc")
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_download_returns_none_on_connect_error(client):
-    with patch.object(client._http, "post", new=AsyncMock(side_effect=httpx.ConnectError("refused"))):
+    with patch.object(
+        client._http, "post", new=AsyncMock(side_effect=httpx.ConnectError("refused"))
+    ):
         result = await client.download("magnet:?xt=urn:btih:abc")
     assert result is None
 
 
 # --- get_transfers ---
+
 
 @pytest.mark.asyncio
 async def test_get_transfers_returns_response_on_200(client):
@@ -294,7 +355,9 @@ async def test_get_transfers_returns_response_on_200(client):
             }
         ],
     }
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ):
         result = await client.get_transfers()
     assert isinstance(result, TransferInfoResponse)
     assert len(result.data) == 1
@@ -302,48 +365,56 @@ async def test_get_transfers_returns_response_on_200(client):
 
 @pytest.mark.asyncio
 async def test_get_transfers_returns_none_on_non_200(client):
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(503))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(503))
+    ):
         result = await client.get_transfers()
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_get_transfers_returns_none_on_connect_error(client):
-    with patch.object(client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))
+    ):
         result = await client.get_transfers()
     assert result is None
 
 
 # --- get_storage ---
 
+
 @pytest.mark.asyncio
 async def test_get_storage_returns_response_on_200(client):
     payload = {
         "status": "success",
-        "message": "",
-        "data": {
-            "path": "/media",
-            "total_gb": 2000.0,
-            "used_gb": 800.0,
-            "free_gb": 1200.0,
-            "used_percent": 40.0,
-        },
+        "path": "/media",
+        "total_gb": 2000.0,
+        "used_gb": 800.0,
+        "free_gb": 1200.0,
+        "used_percent": 40.0,
     }
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ):
         result = await client.get_storage()
-    assert isinstance(result, StorageResponse)
-    assert result.data.free_gb == 1200.0
+    assert isinstance(result, DiskUsageResponse)
+    assert result.free_gb == 1200.0
 
 
 @pytest.mark.asyncio
 async def test_get_storage_returns_none_on_non_200(client):
-    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(503))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(503))
+    ):
         result = await client.get_storage()
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_get_storage_returns_none_on_connect_error(client):
-    with patch.object(client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))):
+    with patch.object(
+        client._http, "get", new=AsyncMock(side_effect=httpx.ConnectError("refused"))
+    ):
         result = await client.get_storage()
     assert result is None

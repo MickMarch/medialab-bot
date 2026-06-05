@@ -1,9 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock
 
-from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
-from medialab_bot.schemas.system import DiskUsage, StorageResponse
+import pytest
+
 from medialab_bot.cogs.status import StatusCog
+from medialab_bot.schemas.system import DiskUsageResponse
+from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
 from tests.helpers import make_interaction
 
 
@@ -26,19 +27,25 @@ def _make_transfers_response(transfers: list[TransferInfo]) -> TransferInfoRespo
     return TransferInfoResponse(status="success", message="", data=transfers)
 
 
-def _make_storage_response() -> StorageResponse:
-    return StorageResponse(
+def _make_storage_response() -> DiskUsageResponse:
+    return DiskUsageResponse(
         status="success",
-        message="",
-        data=DiskUsage(path="/media", total_gb=2000.0, used_gb=800.0, free_gb=1200.0, used_percent=40.0),
+        path="/media",
+        total_gb=2000.0,
+        used_gb=800.0,
+        free_gb=1200.0,
+        used_percent=40.0,
     )
 
 
 # --- /transfers ---
 
+
 @pytest.mark.asyncio
 async def test_transfers_defers_before_api_call(mock_client):
-    mock_client.get_transfers = AsyncMock(return_value=_make_transfers_response([_make_transfer()]))
+    mock_client.get_transfers = AsyncMock(
+        return_value=_make_transfers_response([_make_transfer()])
+    )
     cog = StatusCog(mock_client)
     interaction = make_interaction()
 
@@ -49,7 +56,9 @@ async def test_transfers_defers_before_api_call(mock_client):
 
 @pytest.mark.asyncio
 async def test_transfers_sends_embed_on_results(mock_client):
-    mock_client.get_transfers = AsyncMock(return_value=_make_transfers_response([_make_transfer()]))
+    mock_client.get_transfers = AsyncMock(
+        return_value=_make_transfers_response([_make_transfer()])
+    )
     cog = StatusCog(mock_client)
     interaction = make_interaction()
 
@@ -84,6 +93,7 @@ async def test_transfers_sends_ephemeral_on_client_none(mock_client):
 
 
 # --- /storage ---
+
 
 @pytest.mark.asyncio
 async def test_storage_defers_before_api_call(mock_client):

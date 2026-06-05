@@ -1,6 +1,6 @@
-from medialab_bot.embeds import transfers_embed, storage_embed
+from medialab_bot.embeds import storage_embed, transfers_embed
+from medialab_bot.schemas.system import DiskUsageResponse
 from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
-from medialab_bot.schemas.system import DiskUsage, StorageResponse
 
 
 def _make_transfer(**kwargs) -> TransferInfo:
@@ -19,6 +19,7 @@ def _make_transfer(**kwargs) -> TransferInfo:
 
 
 # --- transfers_embed ---
+
 
 def test_transfers_embed_one_field_per_transfer():
     transfers = [_make_transfer(name=f"Movie{i}.mkv") for i in range(3)]
@@ -46,11 +47,15 @@ def test_transfers_embed_field_contains_state():
 
 # --- storage_embed ---
 
+
 def test_storage_embed_contains_free_gb():
-    response = StorageResponse(
+    response = DiskUsageResponse(
         status="success",
-        message="",
-        data=DiskUsage(path="/media", total_gb=2000.0, used_gb=800.0, free_gb=1200.0, used_percent=40.0),
+        path="/media",
+        total_gb=2000.0,
+        used_gb=800.0,
+        free_gb=1200.0,
+        used_percent=40.0,
     )
     embed = storage_embed(response)
     combined = " ".join(f.value or "" for f in embed.fields) + (embed.description or "")
@@ -58,10 +63,13 @@ def test_storage_embed_contains_free_gb():
 
 
 def test_storage_embed_contains_used_percent():
-    response = StorageResponse(
+    response = DiskUsageResponse(
         status="success",
-        message="",
-        data=DiskUsage(path="/media", total_gb=2000.0, used_gb=800.0, free_gb=1200.0, used_percent=40.0),
+        path="/media",
+        total_gb=2000.0,
+        used_gb=800.0,
+        free_gb=1200.0,
+        used_percent=40.0,
     )
     embed = storage_embed(response)
     combined = " ".join(f.value or "" for f in embed.fields) + (embed.description or "")
