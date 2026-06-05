@@ -1,9 +1,10 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
 from medialab_bot.schemas.system import DiskUsage, StorageResponse
 from medialab_bot.cogs.status import StatusCog
+from tests.helpers import make_interaction
 
 
 def _make_transfer(**kwargs) -> TransferInfo:
@@ -33,22 +34,13 @@ def _make_storage_response() -> StorageResponse:
     )
 
 
-def _make_interaction() -> MagicMock:
-    interaction = MagicMock()
-    interaction.response = MagicMock()
-    interaction.response.defer = AsyncMock()
-    interaction.followup = MagicMock()
-    interaction.followup.send = AsyncMock()
-    return interaction
-
-
 # --- /transfers ---
 
 @pytest.mark.asyncio
 async def test_transfers_defers_before_api_call(mock_client):
     mock_client.get_transfers = AsyncMock(return_value=_make_transfers_response([_make_transfer()]))
     cog = StatusCog(mock_client)
-    interaction = _make_interaction()
+    interaction = make_interaction()
 
     await cog.transfers.callback(cog, interaction)
 
@@ -59,7 +51,7 @@ async def test_transfers_defers_before_api_call(mock_client):
 async def test_transfers_sends_embed_on_results(mock_client):
     mock_client.get_transfers = AsyncMock(return_value=_make_transfers_response([_make_transfer()]))
     cog = StatusCog(mock_client)
-    interaction = _make_interaction()
+    interaction = make_interaction()
 
     await cog.transfers.callback(cog, interaction)
 
@@ -71,7 +63,7 @@ async def test_transfers_sends_embed_on_results(mock_client):
 async def test_transfers_sends_ephemeral_on_empty(mock_client):
     mock_client.get_transfers = AsyncMock(return_value=_make_transfers_response([]))
     cog = StatusCog(mock_client)
-    interaction = _make_interaction()
+    interaction = make_interaction()
 
     await cog.transfers.callback(cog, interaction)
 
@@ -83,7 +75,7 @@ async def test_transfers_sends_ephemeral_on_empty(mock_client):
 async def test_transfers_sends_ephemeral_on_client_none(mock_client):
     mock_client.get_transfers = AsyncMock(return_value=None)
     cog = StatusCog(mock_client)
-    interaction = _make_interaction()
+    interaction = make_interaction()
 
     await cog.transfers.callback(cog, interaction)
 
@@ -97,7 +89,7 @@ async def test_transfers_sends_ephemeral_on_client_none(mock_client):
 async def test_storage_defers_before_api_call(mock_client):
     mock_client.get_storage = AsyncMock(return_value=_make_storage_response())
     cog = StatusCog(mock_client)
-    interaction = _make_interaction()
+    interaction = make_interaction()
 
     await cog.storage.callback(cog, interaction)
 
@@ -108,7 +100,7 @@ async def test_storage_defers_before_api_call(mock_client):
 async def test_storage_sends_embed_on_results(mock_client):
     mock_client.get_storage = AsyncMock(return_value=_make_storage_response())
     cog = StatusCog(mock_client)
-    interaction = _make_interaction()
+    interaction = make_interaction()
 
     await cog.storage.callback(cog, interaction)
 
@@ -120,7 +112,7 @@ async def test_storage_sends_embed_on_results(mock_client):
 async def test_storage_sends_ephemeral_on_client_none(mock_client):
     mock_client.get_storage = AsyncMock(return_value=None)
     cog = StatusCog(mock_client)
-    interaction = _make_interaction()
+    interaction = make_interaction()
 
     await cog.storage.callback(cog, interaction)
 

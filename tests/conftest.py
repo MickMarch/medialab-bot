@@ -14,3 +14,13 @@ def mock_client():
     ))
     client.close = AsyncMock()
     return client
+
+
+@pytest.fixture
+def mock_config():
+    config = MagicMock()
+    config.select_max_results = 25
+    config.torrent_results_per_resolution = 5
+    return config
+
+

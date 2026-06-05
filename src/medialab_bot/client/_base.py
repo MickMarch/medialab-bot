@@ -1,7 +1,10 @@
+import logging
 from typing import Self
 
 import httpx
 from pydantic import BaseModel, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 class _BaseClient:
@@ -16,18 +19,34 @@ class _BaseClient:
         try:
             response = await self._http.get(path, params=params or {})
             if response.status_code != 200:
+                logger.warning("GET %s returned %d", path, response.status_code)
                 return None
             return response.json()
-        except (httpx.ConnectError, httpx.HTTPError, ValueError):
+        except httpx.TimeoutException:
+            logger.warning("GET %s timed out", path)
+            return None
+        except (httpx.ConnectError, httpx.HTTPError):
+            logger.warning("GET %s failed with network error", path)
+            return None
+        except ValueError:
+            logger.error("GET %s returned non-JSON response", path)
             return None
 
     async def _post(self, path: str, json: dict | None = None, expected_status: int = 200) -> dict | None:
         try:
             response = await self._http.post(path, json=json or {})
             if response.status_code != expected_status:
+                logger.warning("POST %s returned %d", path, response.status_code)
                 return None
             return response.json()
-        except (httpx.ConnectError, httpx.HTTPError, ValueError):
+        except httpx.TimeoutException:
+            logger.warning("POST %s timed out", path)
+            return None
+        except (httpx.ConnectError, httpx.HTTPError):
+            logger.warning("POST %s failed with network error", path)
+            return None
+        except ValueError:
+            logger.error("POST %s returned non-JSON response", path)
             return None
 
     @staticmethod
@@ -36,7 +55,8 @@ class _BaseClient:
             return None
         try:
             return model(**data)
-        except (ValidationError, TypeError):
+        except (ValidationError, TypeError) as exc:
+            logger.error("Failed to parse %s: %s", model.__name__, exc)
             return None
 
     async def close(self) -> None:
