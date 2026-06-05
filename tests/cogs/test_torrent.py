@@ -51,7 +51,7 @@ async def test_torrent_calls_search_torrents_with_query(mock_client, mock_config
 
 
 @pytest.mark.asyncio
-async def test_torrent_sends_view_on_results(mock_client, mock_config):
+async def test_torrent_sends_searching_message_then_edits_with_view(mock_client, mock_config):
     mock_client.search_torrents = AsyncMock(
         return_value=_make_torrent_response({"1080p": [_make_torrent_result()]})
     )
@@ -61,28 +61,30 @@ async def test_torrent_sends_view_on_results(mock_client, mock_config):
     await cog.torrent.callback(cog, interaction, query="dune")
 
     interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("view") is not None
+    message = interaction.followup.send.return_value
+    message.edit.assert_awaited_once()
+    assert message.edit.call_args.kwargs.get("view") is not None
 
 
 @pytest.mark.asyncio
-async def test_torrent_sends_ephemeral_on_empty_results(mock_client, mock_config):
+async def test_torrent_edits_message_with_error_on_empty_results(mock_client, mock_config):
     mock_client.search_torrents = AsyncMock(return_value=_make_torrent_response({}))
     cog = TorrentCog(mock_client, mock_config)
     interaction = make_interaction()
 
     await cog.torrent.callback(cog, interaction, query="xyzzy")
 
-    interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    message = interaction.followup.send.return_value
+    message.edit.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_torrent_sends_ephemeral_on_client_none(mock_client, mock_config):
+async def test_torrent_edits_message_with_error_on_client_none(mock_client, mock_config):
     mock_client.search_torrents = AsyncMock(return_value=None)
     cog = TorrentCog(mock_client, mock_config)
     interaction = make_interaction()
 
     await cog.torrent.callback(cog, interaction, query="dune")
 
-    interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    message = interaction.followup.send.return_value
+    message.edit.assert_awaited_once()

@@ -4,7 +4,6 @@ from discord.ext import commands
 
 from medialab_bot.client import TorrentDownloaderClient
 from medialab_bot.config import AppConfig
-from medialab_bot.embeds import search_results_embed
 from medialab_bot.views.tmdb import TmdbSelectMenu
 
 
@@ -15,21 +14,18 @@ class SearchCog(commands.Cog):
 
     @app_commands.command(name="search", description="Search TMDB for movies and TV shows")
     async def search(self, interaction: discord.Interaction, query: str) -> None:
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
+        message = await interaction.followup.send(f"Searching TMDB for **{query}**...", ephemeral=True)
         response = await self._client.search_tmdb(query)
 
         if response is None or not response.data:
-            await interaction.followup.send(
-                "No results found. Try a different query.",
-                ephemeral=True,
-            )
+            await message.edit(content="No results found. Try a different query.")
             return
 
-        embed = search_results_embed(response.data)
         view = TmdbSelectMenu(
             response.data,
             self._client,
             max_results=self._config.select_max_results,
             results_per_resolution=self._config.torrent_results_per_resolution,
         )
-        await interaction.followup.send(embed=embed, view=view)
+        await message.edit(content=f"Results for **{query}**:", view=view)

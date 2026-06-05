@@ -18,6 +18,7 @@ async def _run(config: AppConfig) -> None:
         base_url=config.torrent_downloader_url,
         api_key=config.torrent_downloader_api_key,
         save_path=config.torrent_save_path,
+        torrent_search_timeout=config.torrent_search_timeout_seconds,
     ) as client:
         health = await client.health()
         if health is None:

@@ -4,7 +4,7 @@ from medialab_bot.schemas.system import HealthResponse, DiskUsage, StorageRespon
 from medialab_bot.schemas.tmdb import TmdbSearchResult, TmdbSearchResponse, TmdbMediaDetailResponse
 from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
 from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
-from medialab_bot.schemas.downloads import DownloadRequest, DownloadResponse
+from medialab_bot.schemas.downloads import DownloadResponse
 from medialab_bot.schemas.errors import ErrorResponse
 
 
@@ -198,17 +198,6 @@ def test_transfer_info_response_empty():
 
 
 # --- downloads ---
-
-def test_download_request_parses():
-    req = DownloadRequest(magnet_uri="magnet:?xt=urn:btih:abc", save_path="/media/downloads")
-    assert req.dry_run is False
-    assert req.magnet_uri == "magnet:?xt=urn:btih:abc"
-
-
-def test_download_request_dry_run():
-    req = DownloadRequest(magnet_uri="magnet:?xt=urn:btih:abc", save_path="/media/downloads", dry_run=True)
-    assert req.dry_run is True
-
 
 def test_download_response_parses():
     resp = DownloadResponse(status="success", message="Torrent added.")

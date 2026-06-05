@@ -17,7 +17,7 @@ class TmdbSelectMenu(discord.ui.View):
         super().__init__()
         self._client = client
         self._results_per_resolution = results_per_resolution
-        self._results = {str(r.tmdb_id): r for r in results}
+        self._results = {str(r.tmdb_id): r for r in results[:max_results]}
 
         options = [
             discord.SelectOption(
@@ -44,25 +44,27 @@ class TmdbSelectMenu(discord.ui.View):
             return
 
         await interaction.response.defer()
+        await interaction.edit_original_response(
+            content=f"Searching for torrents matching **{result.title} ({result.year})**...",
+            view=None,
+        )
         torrent_response = await self._client.search_torrents(f"{result.title} {result.year}")
 
         if torrent_response is None or not torrent_response.data:
-            await interaction.followup.send(
-                "No torrents found for that title. Try a different search.",
-                ephemeral=True,
+            await interaction.edit_original_response(
+                content="No torrents found for that title. Try a different search.",
             )
             return
 
         try:
             view = TorrentSelectMenu(torrent_response.data, self._client, self._results_per_resolution)
         except ValueError:
-            await interaction.followup.send(
-                "No valid torrents found for that title. Try a different search.",
-                ephemeral=True,
+            await interaction.edit_original_response(
+                content="No valid torrents found for that title. Try a different search.",
             )
             return
 
-        await interaction.followup.send(
-            f"Torrents for **{result.title} ({result.year})**:",
+        await interaction.edit_original_response(
+            content=f"Torrents for **{result.title} ({result.year})**:",
             view=view,
         )

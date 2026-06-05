@@ -71,7 +71,7 @@ async def test_search_defers_before_api_call(mock_client, mock_config):
 
 
 @pytest.mark.asyncio
-async def test_search_sends_embed_and_view_on_results(mock_client, mock_config):
+async def test_search_sends_searching_message_then_edits_with_view(mock_client, mock_config):
     mock_client.search_tmdb = AsyncMock(return_value=_make_tmdb_response([_make_tmdb_result()]))
     cog = SearchCog(mock_client, mock_config)
     interaction = make_interaction()
@@ -80,33 +80,33 @@ async def test_search_sends_embed_and_view_on_results(mock_client, mock_config):
 
     mock_client.search_tmdb.assert_awaited_once_with("dune")
     interaction.followup.send.assert_awaited_once()
-    call_kwargs = interaction.followup.send.call_args.kwargs
-    assert call_kwargs.get("embed") is not None
-    assert call_kwargs.get("view") is not None
+    message = interaction.followup.send.return_value
+    message.edit.assert_awaited_once()
+    assert message.edit.call_args.kwargs.get("view") is not None
 
 
 @pytest.mark.asyncio
-async def test_search_sends_ephemeral_error_on_empty_results(mock_client, mock_config):
+async def test_search_edits_message_with_error_on_empty_results(mock_client, mock_config):
     mock_client.search_tmdb = AsyncMock(return_value=_make_tmdb_response([]))
     cog = SearchCog(mock_client, mock_config)
     interaction = make_interaction()
 
     await cog.search.callback(cog, interaction, query="xyzzy")
 
-    interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    message = interaction.followup.send.return_value
+    message.edit.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_search_sends_ephemeral_error_on_client_none(mock_client, mock_config):
+async def test_search_edits_message_with_error_on_client_none(mock_client, mock_config):
     mock_client.search_tmdb = AsyncMock(return_value=None)
     cog = SearchCog(mock_client, mock_config)
     interaction = make_interaction()
 
     await cog.search.callback(cog, interaction, query="dune")
 
-    interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    message = interaction.followup.send.return_value
+    message.edit.assert_awaited_once()
 
 
 # --- TmdbSelectMenu ---
@@ -153,12 +153,12 @@ async def test_tmdb_select_sends_torrent_picker_on_results(mock_client, mock_con
 
     await view.select.callback(interaction)
 
-    interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("view") is not None
+    last_edit = interaction.edit_original_response.call_args_list[-1]
+    assert last_edit.kwargs.get("view") is not None
 
 
 @pytest.mark.asyncio
-async def test_tmdb_select_sends_ephemeral_error_on_no_torrents(mock_client, mock_config):
+async def test_tmdb_select_edits_message_with_error_on_no_torrents(mock_client, mock_config):
     result = _make_tmdb_result(tmdb_id=42, title="Dune", year="2021")
     mock_client.search_torrents = AsyncMock(return_value=_make_torrent_response({}))
     view = _tmdb_view([result], mock_client, mock_config)
@@ -167,12 +167,11 @@ async def test_tmdb_select_sends_ephemeral_error_on_no_torrents(mock_client, moc
 
     await view.select.callback(interaction)
 
-    interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    interaction.edit_original_response.assert_awaited()
 
 
 @pytest.mark.asyncio
-async def test_tmdb_select_sends_ephemeral_error_on_client_none(mock_client, mock_config):
+async def test_tmdb_select_edits_message_with_error_on_client_none(mock_client, mock_config):
     result = _make_tmdb_result(tmdb_id=42, title="Dune", year="2021")
     mock_client.search_torrents = AsyncMock(return_value=None)
     view = _tmdb_view([result], mock_client, mock_config)
@@ -181,8 +180,7 @@ async def test_tmdb_select_sends_ephemeral_error_on_client_none(mock_client, moc
 
     await view.select.callback(interaction)
 
-    interaction.followup.send.assert_awaited_once()
-    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    interaction.edit_original_response.assert_awaited()
 
 
 @pytest.mark.asyncio
@@ -269,8 +267,9 @@ async def test_torrent_select_sends_ephemeral_confirm_on_success(mock_client, mo
 
     await view.select.callback(interaction)
 
-    interaction.response.send_message.assert_awaited_once()
-    assert interaction.response.send_message.call_args.kwargs.get("ephemeral") is True
+    interaction.response.defer.assert_awaited_once()
+    interaction.followup.send.assert_awaited_once()
+    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
 
 
 @pytest.mark.asyncio
@@ -283,8 +282,9 @@ async def test_torrent_select_sends_ephemeral_error_on_download_failure(mock_cli
 
     await view.select.callback(interaction)
 
-    interaction.response.send_message.assert_awaited_once()
-    assert interaction.response.send_message.call_args.kwargs.get("ephemeral") is True
+    interaction.response.defer.assert_awaited_once()
+    interaction.followup.send.assert_awaited_once()
+    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
 
 
 @pytest.mark.asyncio

@@ -11,4 +11,5 @@ class AppConfig(BaseSettings):
     torrent_save_path: str
     select_max_results: int = 25
     torrent_results_per_resolution: int = 5
+    torrent_search_timeout_seconds: float = 30.0
     log_level: str = "INFO"

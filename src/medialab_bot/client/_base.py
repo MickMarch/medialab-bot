@@ -8,16 +8,17 @@ logger = logging.getLogger(__name__)
 
 
 class _BaseClient:
-    def __init__(self, base_url: str, api_key: str, save_path: str) -> None:
+    def __init__(self, base_url: str, api_key: str, save_path: str, torrent_search_timeout: float = 30.0) -> None:
         self._http = httpx.AsyncClient(
             base_url=base_url,
             headers={"X-API-Key": api_key},
         )
         self._save_path = save_path
+        self._torrent_search_timeout = torrent_search_timeout
 
-    async def _get(self, path: str, params: dict | None = None) -> dict | None:
+    async def _get(self, path: str, params: dict | None = None, timeout: float | None = None) -> dict | None:
         try:
-            response = await self._http.get(path, params=params or {})
+            response = await self._http.get(path, params=params or {}, timeout=timeout)
             if response.status_code != 200:
                 logger.warning("GET %s returned %d", path, response.status_code)
                 return None
@@ -54,7 +55,7 @@ class _BaseClient:
         if data is None:
             return None
         try:
-            return model(**data)
+            return model.model_validate(data)
         except (ValidationError, TypeError) as exc:
             logger.error("Failed to parse %s: %s", model.__name__, exc)
             return None

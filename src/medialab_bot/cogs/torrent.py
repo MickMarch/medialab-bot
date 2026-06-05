@@ -14,14 +14,12 @@ class TorrentCog(commands.Cog):
 
     @app_commands.command(name="torrent", description="Search for torrents directly by title")
     async def torrent(self, interaction: discord.Interaction, query: str) -> None:
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
+        message = await interaction.followup.send(f"Searching for torrents matching **{query}**...", ephemeral=True)
         response = await self._client.search_torrents(query)
 
         if response is None or not response.data:
-            await interaction.followup.send(
-                "No torrents found. Try a different query.",
-                ephemeral=True,
-            )
+            await message.edit(content="No torrents found. Try a different query.")
             return
 
         try:
@@ -31,10 +29,7 @@ class TorrentCog(commands.Cog):
                 results_per_resolution=self._config.torrent_results_per_resolution,
             )
         except ValueError:
-            await interaction.followup.send(
-                "No valid torrents found. Try a different query.",
-                ephemeral=True,
-            )
+            await message.edit(content="No valid torrents found. Try a different query.")
             return
 
-        await interaction.followup.send(f"Torrents for **{query}**:", view=view)
+        await message.edit(content=f"Torrents for **{query}**:", view=view)
