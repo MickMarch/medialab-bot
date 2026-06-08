@@ -18,12 +18,12 @@ class TorrentSelectMenu(discord.ui.View):
 
         options: list[discord.SelectOption] = []
         for resolution, results in groups.items():
-            top = sorted(results, key=lambda r: max(0, r.nbSeeders), reverse=True)[:results_per_resolution]
+            top = sorted(results, key=lambda r: r.seeders, reverse=True)[:results_per_resolution]
             for i, result in enumerate(top):
                 key = f"{resolution}:{i}"
                 self._indexed[key] = result
-                label = f"{resolution} - {result.fileName}"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
-                description = f"{result.nbSeeders} seeders"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
+                label = f"{resolution} - {result.file_name}"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
+                description = f"{result.seeders} seeders"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
                 options.append(discord.SelectOption(label=label, value=key, description=description))
 
         if not options:
@@ -44,7 +44,7 @@ class TorrentSelectMenu(discord.ui.View):
             )
             return
 
-        if not result.fileUrl.startswith("magnet:"):
+        if not result.file_url.startswith("magnet:"):
             await interaction.response.send_message(
                 "Invalid torrent link. Please try a different result.",
                 ephemeral=True,
@@ -52,7 +52,7 @@ class TorrentSelectMenu(discord.ui.View):
             return
 
         await interaction.response.defer(ephemeral=True)
-        response = await self._client.download(result.fileUrl)
+        response = await self._client.download(result.file_url)
         if response is None:
             await interaction.followup.send(
                 "Download request failed. Please try again.",
@@ -61,6 +61,6 @@ class TorrentSelectMenu(discord.ui.View):
             return
 
         await interaction.followup.send(
-            f"Download started: **{result.fileName}**",
+            f"Download started: **{result.file_name}**",
             ephemeral=True,
         )

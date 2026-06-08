@@ -5,7 +5,11 @@ from medialab_bot.schemas.torrents import TorrentSearchResponse
 
 class _TorrentsMixin(_BaseClient):
     async def search_torrents(self, query: str) -> TorrentSearchResponse | None:
-        data = await self._get("/api/v1/search/torrents", params={"query": query}, timeout=self._torrent_search_timeout)
+        data = await self._get(
+            "/api/v1/search/torrents",
+            params={"query": query},
+            timeout=self._torrent_search_timeout,
+        )
         return self._parse(TorrentSearchResponse, data)
 
     async def download(self, magnet_uri: str) -> DownloadResponse | None:

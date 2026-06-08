@@ -17,7 +17,9 @@ class TmdbSelectMenu(discord.ui.View):
         super().__init__()
         self._client = client
         self._results_per_resolution = results_per_resolution
-        self._results = {str(r.tmdb_id): r for r in results[:max_results]}
+
+        top_results = results[:max_results]
+        self._results = {str(r.tmdb_id): r for r in top_results}
 
         options = [
             discord.SelectOption(
@@ -25,7 +27,7 @@ class TmdbSelectMenu(discord.ui.View):
                 value=f"{r.tmdb_id}:{r.media_type}",
                 description=f"{r.media_type} - ⭐ {r.vote_average}"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH],
             )
-            for r in results[:max_results]
+            for r in top_results
         ]
         self.select = discord.ui.Select(placeholder="Choose a title...", options=options)
         self.select.callback = self._on_select

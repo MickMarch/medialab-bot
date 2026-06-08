@@ -121,9 +121,9 @@ def test_torrent_result_parses():
         "fileSize": 10_000_000_000,
     }
     result = TorrentResult(**data)
-    assert result.fileName == "Dune.2021.1080p.BluRay.mkv"
-    assert result.nbSeeders == 150
-    assert result.fileSize == 10_000_000_000
+    assert result.file_name == "Dune.2021.1080p.BluRay.mkv"
+    assert result.seeders == 150
+    assert result.file_size == 10_000_000_000
 
 
 def test_torrent_search_response_parses_grouped_by_resolution():
@@ -154,7 +154,7 @@ def test_torrent_search_response_parses_grouped_by_resolution():
     response = TorrentSearchResponse(**data)
     assert "1080p" in response.data
     assert len(response.data["1080p"]) == 1
-    assert response.data["1080p"][0].fileName == "Dune.1080p.mkv"
+    assert response.data["1080p"][0].file_name == "Dune.1080p.mkv"
 
 
 def test_torrent_search_response_parses_empty_data():

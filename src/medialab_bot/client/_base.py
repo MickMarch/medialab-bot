@@ -1,10 +1,12 @@
 import logging
-from typing import Self
+from typing import Self, TypeVar
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
+
+ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 class _BaseClient:
@@ -67,7 +69,7 @@ class _BaseClient:
             return None
 
     @staticmethod
-    def _parse(model: type[BaseModel], data: dict | None) -> BaseModel | None:
+    def _parse(model: type[ModelT], data: dict | None) -> ModelT | None:
         if data is None:
             return None
         try:

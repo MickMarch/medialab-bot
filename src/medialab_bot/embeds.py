@@ -18,12 +18,13 @@ def transfers_embed(response: TransferInfoResponse) -> discord.Embed:
 
 
 def storage_embed(response: DiskUsageResponse) -> discord.Embed:
-    d = response
     embed = discord.Embed(title="Storage", color=discord.Color.blue())
-    embed.add_field(name="Path", value=d.path, inline=False)
-    embed.add_field(name="Total", value=f"{d.total_gb:.1f} GB", inline=True)
+    embed.add_field(name="Path", value=response.path, inline=False)
+    embed.add_field(name="Total", value=f"{response.total_gb:.1f} GB", inline=True)
     embed.add_field(
-        name="Used", value=f"{d.used_gb:.1f} GB ({d.used_percent:.1f}%)", inline=True
+        name="Used",
+        value=f"{response.used_gb:.1f} GB ({response.used_percent:.1f}%)",
+        inline=True,
     )
-    embed.add_field(name="Free", value=f"{d.free_gb:.1f} GB", inline=True)
+    embed.add_field(name="Free", value=f"{response.free_gb:.1f} GB", inline=True)
     return embed

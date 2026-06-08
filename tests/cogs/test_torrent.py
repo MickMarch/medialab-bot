@@ -12,11 +12,11 @@ def _make_torrent_result(
     seeders: int = 100,
 ) -> TorrentResult:
     return TorrentResult(
-        fileName=filename,
-        fileUrl=magnet,
-        nbSeeders=seeders,
-        nbLeechers=5,
-        fileSize=8_000_000_000,
+        file_name=filename,
+        file_url=magnet,
+        seeders=seeders,
+        leechers=5,
+        file_size=8_000_000_000,
     )
 
 
