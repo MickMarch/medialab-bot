@@ -45,6 +45,8 @@ cp .env.example .env
 | `DISCORD_GUILD_ID` | Yes | Guild (server) ID for slash command registration |
 | `TORRENT_DOWNLOADER_URL` | Yes | Base URL of torrent-downloader (e.g. `http://127.0.0.1:8000`) |
 | `TORRENT_DOWNLOADER_API_KEY` | Yes | `X-API-Key` header value for torrent-downloader |
+| `TORRENT_SAVE_PATH` | Yes | Host path where torrents are saved (sent as the download destination) |
+| `TMP_DOCKER_SAVE_PATH` | Yes | Path to query for `/storage` disk usage. The bot and torrent-downloader run in separate containers and do not share a filesystem, so this must be the mount path visible to the torrent-downloader container rather than the host path. When both services share the same filesystem this can be set to the same value as `TORRENT_SAVE_PATH`. |
 | `LOG_LEVEL` | No | Log level (default: `INFO`) |
 
 ### Discord Bot Permissions
