@@ -27,7 +27,11 @@ class JobsCog(commands.Cog):
             await interaction.followup.send("No jobs found.", ephemeral=True)
             return
 
-        # Offer a retry control for any failed job in the result set.
+        # Offer a retry control for any failed job in the result set. discord.py
+        # rejects view=None (it expects a View or the param omitted entirely), so
+        # only pass view when there is one.
         failed = [j for j in response.jobs if j.status == _FAILED_STATUS]
-        view = JobRetryView(self._client, failed) if failed else None
-        await interaction.followup.send(embed=jobs_embed(response), view=view, ephemeral=True)
+        kwargs: dict = {"embed": jobs_embed(response), "ephemeral": True}
+        if failed:
+            kwargs["view"] = JobRetryView(self._client, failed)
+        await interaction.followup.send(**kwargs)

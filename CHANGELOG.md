@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `/jobs` crashed with `TypeError: expected view parameter to be of type View ...
+  not NoneType` when no job in the result set was failed. The cog now omits the
+  `view` kwarg entirely rather than passing `view=None` (which discord.py
+  rejects). Regression-guarded by a test that mirrors discord.py's contract.
+
 ### Added
 
 - `/jobs [status]` command surfacing the orchestrator's pipeline lifecycle, with
