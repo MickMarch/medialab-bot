@@ -70,9 +70,7 @@ async def test_health_returns_response_on_200(client):
 
 @pytest.mark.asyncio
 async def test_health_returns_none_on_non_200(client):
-    with patch.object(
-        client._http, "get", new=AsyncMock(return_value=_mock_response(503))
-    ):
+    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(503))):
         result = await client.health()
     assert result is None
 
@@ -125,9 +123,7 @@ async def test_search_tmdb_returns_response_on_200(client):
 
 @pytest.mark.asyncio
 async def test_search_tmdb_returns_none_on_non_200(client):
-    with patch.object(
-        client._http, "get", new=AsyncMock(return_value=_mock_response(429))
-    ):
+    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(429))):
         result = await client.search_tmdb("dune")
     assert result is None
 
@@ -180,9 +176,7 @@ async def test_search_tmdb_movie_calls_correct_path(client):
 
 @pytest.mark.asyncio
 async def test_search_tmdb_movie_returns_none_on_non_200(client):
-    with patch.object(
-        client._http, "get", new=AsyncMock(return_value=_mock_response(404))
-    ):
+    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(404))):
         result = await client.search_tmdb_movie(999)
     assert result is None
 
@@ -226,9 +220,7 @@ async def test_search_tmdb_show_calls_correct_path(client):
 
 @pytest.mark.asyncio
 async def test_search_tmdb_show_returns_none_on_non_200(client):
-    with patch.object(
-        client._http, "get", new=AsyncMock(return_value=_mock_response(404))
-    ):
+    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(404))):
         result = await client.search_tmdb_show(999)
     assert result is None
 
@@ -273,9 +265,7 @@ async def test_search_torrents_passes_query_param(client):
 
 @pytest.mark.asyncio
 async def test_search_torrents_returns_none_on_non_200(client):
-    with patch.object(
-        client._http, "get", new=AsyncMock(return_value=_mock_response(429))
-    ):
+    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(429))):
         result = await client.search_torrents("dune")
     assert result is None
 
@@ -317,9 +307,7 @@ async def test_download_sends_save_path_from_config(client):
 
 @pytest.mark.asyncio
 async def test_download_returns_none_on_non_202(client):
-    with patch.object(
-        client._http, "post", new=AsyncMock(return_value=_mock_response(503))
-    ):
+    with patch.object(client._http, "post", new=AsyncMock(return_value=_mock_response(503))):
         result = await client.download("magnet:?xt=urn:btih:abc")
     assert result is None
 
@@ -365,9 +353,7 @@ async def test_get_transfers_returns_response_on_200(client):
 
 @pytest.mark.asyncio
 async def test_get_transfers_returns_none_on_non_200(client):
-    with patch.object(
-        client._http, "get", new=AsyncMock(return_value=_mock_response(503))
-    ):
+    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(503))):
         result = await client.get_transfers()
     assert result is None
 
@@ -404,9 +390,7 @@ async def test_get_storage_returns_response_on_200(client):
 
 @pytest.mark.asyncio
 async def test_get_storage_returns_none_on_non_200(client):
-    with patch.object(
-        client._http, "get", new=AsyncMock(return_value=_mock_response(503))
-    ):
+    with patch.object(client._http, "get", new=AsyncMock(return_value=_mock_response(503))):
         result = await client.get_storage()
     assert result is None
 

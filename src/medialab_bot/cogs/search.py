@@ -15,7 +15,9 @@ class SearchCog(commands.Cog):
     @app_commands.command(name="search", description="Search TMDB for movies and TV shows")
     async def search(self, interaction: discord.Interaction, query: str) -> None:
         await interaction.response.defer(ephemeral=True)
-        message = await interaction.followup.send(f"Searching TMDB for **{query}**...", ephemeral=True)
+        message = await interaction.followup.send(
+            f"Searching TMDB for **{query}**...", ephemeral=True
+        )
         response = await self._client.search_tmdb(query)
 
         if response is None or not response.data:

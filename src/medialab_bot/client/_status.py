@@ -13,7 +13,5 @@ class _StatusMixin(_BaseClient):
         return self._parse(TransferInfoResponse, data)
 
     async def get_storage(self) -> DiskUsageResponse | None:
-        data = await self._get(
-            "/api/v1/storage", params={"path": self._tmp_docker_save_path}
-        )
+        data = await self._get("/api/v1/storage", params={"path": self._tmp_docker_save_path})
         return self._parse(DiskUsageResponse, data)

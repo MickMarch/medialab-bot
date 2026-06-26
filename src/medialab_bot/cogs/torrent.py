@@ -15,7 +15,9 @@ class TorrentCog(commands.Cog):
     @app_commands.command(name="torrent", description="Search for torrents directly by title")
     async def torrent(self, interaction: discord.Interaction, query: str) -> None:
         await interaction.response.defer(ephemeral=True)
-        message = await interaction.followup.send(f"Searching for torrents matching **{query}**...", ephemeral=True)
+        message = await interaction.followup.send(
+            f"Searching for torrents matching **{query}**...", ephemeral=True
+        )
         response = await self._client.search_torrents(query)
 
         if response is None or not response.data:

@@ -11,7 +11,10 @@ def transfers_embed(response: TransferInfoResponse) -> discord.Embed:
         ul = t.upload_speed // 1024
         embed.add_field(
             name=t.name,
-            value=f"{t.progress * 100:.1f}% | {t.state} | DL {dl} KB/s | UL {ul} KB/s | ETA {t.eta_seconds}s",
+            value=(
+                f"{t.progress * 100:.1f}% | {t.state} | "
+                f"DL {dl} KB/s | UL {ul} KB/s | ETA {t.eta_seconds}s"
+            ),
             inline=False,
         )
     return embed
