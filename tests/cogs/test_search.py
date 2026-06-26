@@ -1,24 +1,37 @@
 from unittest.mock import AsyncMock
 
 import pytest
+from medialab_contracts import MediaType
 
 from medialab_bot.cogs.search import SearchCog
 from medialab_bot.schemas.downloads import DownloadResponse
+from medialab_bot.schemas.jobs import JobView
 from medialab_bot.schemas.tmdb import TmdbSearchResponse, TmdbSearchResult
 from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
 from medialab_bot.views.tmdb import TmdbSelectMenu
 from medialab_bot.views.torrent import TorrentSelectMenu
 from tests.helpers import make_interaction
 
+_JOB = JobView(
+    id=1,
+    torrent_hash="abc123",
+    release_name="Dune.2021.1080p",
+    media_type=MediaType.MOVIE,
+    tmdb_id=438631,
+    status="DOWNLOAD_SUBMITTED",
+    created_at="2026-06-26T00:00:00+00:00",
+    updated_at="2026-06-26T00:00:00+00:00",
+)
+
 
 def _make_tmdb_result(
-    tmdb_id: int = 1, title: str = "Test Movie", year: str = "2024"
+    tmdb_id: int = 1, title: str = "Test Movie", year: str = "2024", media_type: str = "movie"
 ) -> TmdbSearchResult:
     return TmdbSearchResult(
         tmdb_id=tmdb_id,
         title=title,
         year=year,
-        media_type="movie",
+        media_type=media_type,
         overview="Overview.",
         vote_average=7.0,
         poster_path=None,
@@ -56,9 +69,15 @@ def _tmdb_view(results, client, mock_config) -> TmdbSelectMenu:
     )
 
 
-def _torrent_view(groups, client, mock_config) -> TorrentSelectMenu:
+def _torrent_view(
+    groups, client, mock_config, media_type=MediaType.MOVIE, tmdb_id=438631
+) -> TorrentSelectMenu:
     return TorrentSelectMenu(
-        groups, client, results_per_resolution=mock_config.torrent_results_per_resolution
+        groups,
+        client,
+        results_per_resolution=mock_config.torrent_results_per_resolution,
+        media_type=media_type,
+        tmdb_id=tmdb_id,
     )
 
 
@@ -216,16 +235,14 @@ async def test_torrent_select_calls_download_with_correct_magnet(mock_client, mo
             _make_torrent_result(magnet="magnet:?xt=urn:btih:ccc", seeders=50),
         ],
     }
-    mock_client.download = AsyncMock(
-        return_value=DownloadResponse(status="success", message="Added.")
-    )
-    view = _torrent_view(groups, mock_client, mock_config)
+    mock_client.download = AsyncMock(return_value=DownloadResponse(status="success", job=_JOB))
+    view = _torrent_view(groups, mock_client, mock_config, media_type=MediaType.MOVIE, tmdb_id=42)
     interaction = make_interaction()
     interaction.configure_mock(data={"values": ["1080p:1"]})
 
     await view.select.callback(interaction)
 
-    mock_client.download.assert_awaited_once_with("magnet:?xt=urn:btih:bbb")
+    mock_client.download.assert_awaited_once_with("magnet:?xt=urn:btih:bbb", MediaType.MOVIE, 42)
 
 
 @pytest.mark.asyncio
@@ -270,9 +287,7 @@ async def test_torrent_select_groups_all_resolutions(mock_client, mock_config):
 @pytest.mark.asyncio
 async def test_torrent_select_sends_ephemeral_confirm_on_success(mock_client, mock_config):
     groups = {"1080p": [_make_torrent_result(magnet="magnet:?xt=urn:btih:abc")]}
-    mock_client.download = AsyncMock(
-        return_value=DownloadResponse(status="success", message="Added.")
-    )
+    mock_client.download = AsyncMock(return_value=DownloadResponse(status="success", job=_JOB))
     view = _torrent_view(groups, mock_client, mock_config)
     interaction = make_interaction()
     interaction.configure_mock(data={"values": ["1080p:0"]})
@@ -310,3 +325,38 @@ async def test_torrent_select_handles_malformed_value(mock_client, mock_config):
 
     interaction.response.send_message.assert_awaited_once()
     assert interaction.response.send_message.call_args.kwargs.get("ephemeral") is True
+
+
+# --- state threading: tmdb_id + media_type flow TMDB pick -> torrent pick ---
+
+
+@pytest.mark.asyncio
+async def test_tmdb_select_threads_tv_as_show_into_torrent_view(mock_client, mock_config):
+    result = _make_tmdb_result(tmdb_id=1396, title="Breaking Bad", year="2008", media_type="tv")
+    mock_client.search_torrents = AsyncMock(
+        return_value=_make_torrent_response({"1080p": [_make_torrent_result()]})
+    )
+    view = _tmdb_view([result], mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["1396:tv"]})
+
+    await view.select.callback(interaction)
+
+    forwarded = interaction.edit_original_response.call_args_list[-1].kwargs["view"]
+    assert isinstance(forwarded, TorrentSelectMenu)
+    # TMDB "tv" mapped to the shared MediaType.SHOW, with the tmdb_id carried through.
+    assert forwarded._media_type is MediaType.SHOW
+    assert forwarded._tmdb_id == 1396
+
+
+@pytest.mark.asyncio
+async def test_tmdb_select_rejects_unmappable_media_type(mock_client, mock_config):
+    result = _make_tmdb_result(tmdb_id=5, title="Some Person", media_type="person")
+    view = _tmdb_view([result], mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["5:person"]})
+
+    await view.select.callback(interaction)
+
+    interaction.response.send_message.assert_awaited_once()
+    mock_client.search_torrents.assert_not_called()

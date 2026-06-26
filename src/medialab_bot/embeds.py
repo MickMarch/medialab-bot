@@ -1,20 +1,38 @@
 import discord
 
+from medialab_bot.schemas.jobs import JobsResponse
 from medialab_bot.schemas.system import DiskUsageResponse
-from medialab_bot.schemas.transfers import TransferInfoResponse
+from medialab_bot.schemas.transfers import MergedTransfersResponse
+
+_BYTES_PER_KB = 1024
 
 
-def transfers_embed(response: TransferInfoResponse) -> discord.Embed:
+def transfers_embed(response: MergedTransfersResponse) -> discord.Embed:
     embed = discord.Embed(title="Active Transfers", color=discord.Color.green())
-    for t in response.data:
-        dl = t.download_speed // 1024
-        ul = t.upload_speed // 1024
+    for t in response.transfers.data:
+        dl = t.download_speed // _BYTES_PER_KB
+        ul = t.upload_speed // _BYTES_PER_KB
         embed.add_field(
             name=t.name,
             value=(
                 f"{t.progress * 100:.1f}% | {t.state} | "
                 f"DL {dl} KB/s | UL {ul} KB/s | ETA {t.eta_seconds}s"
             ),
+            inline=False,
+        )
+    return embed
+
+
+def jobs_embed(response: JobsResponse) -> discord.Embed:
+    embed = discord.Embed(title="Pipeline Jobs", color=discord.Color.gold())
+    for job in response.jobs:
+        title = job.resolved_title or job.release_name or job.torrent_hash
+        line = f"**{job.status}**"
+        if job.last_error:
+            line += f" - {job.last_error}"
+        embed.add_field(
+            name=f"{title} ({job.media_type.value})",
+            value=f"{line}\nhash `{job.torrent_hash}`",
             inline=False,
         )
     return embed

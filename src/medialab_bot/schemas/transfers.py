@@ -1,19 +1,22 @@
+from medialab_contracts import TransferInfo
 from pydantic import BaseModel
 
-
-class TransferInfo(BaseModel):
-    name: str
-    size: int
-    progress: float
-    hash: str
-    state: str
-    download_speed: int
-    upload_speed: int
-    eta_seconds: int
-    save_path: str
+from medialab_bot.schemas.jobs import JobView
 
 
-class TransferInfoResponse(BaseModel):
+class LiveTransfers(BaseModel):
+    """The torrent-downloader live-transfers payload, passed through by the
+    gateway under the ``transfers`` key."""
+
     status: str
-    message: str
-    data: list[TransferInfo]
+    message: str = ""
+    data: list[TransferInfo] = []
+
+
+class MergedTransfersResponse(BaseModel):
+    """Body of the gateway's ``GET /transfers``: live transfer state from
+    torrent-downloader merged with the orchestrator's own pipeline job rows."""
+
+    status: str
+    transfers: LiveTransfers
+    jobs: list[JobView]

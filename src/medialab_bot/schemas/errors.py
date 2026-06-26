@@ -1,7 +1,5 @@
-from pydantic import BaseModel
+"""Re-export the shared structured-error model from medialab-contracts."""
 
+from medialab_contracts import ErrorResponse
 
-class ErrorResponse(BaseModel):
-    status: str
-    code: str
-    detail: str
+__all__ = ["ErrorResponse"]

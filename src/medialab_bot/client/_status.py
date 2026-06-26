@@ -1,6 +1,6 @@
 from medialab_bot.client._base import _BaseClient
 from medialab_bot.schemas.system import DiskUsageResponse, HealthResponse
-from medialab_bot.schemas.transfers import TransferInfoResponse
+from medialab_bot.schemas.transfers import MergedTransfersResponse
 
 
 class _StatusMixin(_BaseClient):
@@ -8,10 +8,11 @@ class _StatusMixin(_BaseClient):
         data = await self._get("/api/v1/health")
         return self._parse(HealthResponse, data)
 
-    async def get_transfers(self) -> TransferInfoResponse | None:
+    async def get_transfers(self) -> MergedTransfersResponse | None:
         data = await self._get("/api/v1/transfers")
-        return self._parse(TransferInfoResponse, data)
+        return self._parse(MergedTransfersResponse, data)
 
     async def get_storage(self) -> DiskUsageResponse | None:
-        data = await self._get("/api/v1/storage", params={"path": self._tmp_docker_save_path})
+        # The gateway resolves the storage path itself; no path arg from the bot.
+        data = await self._get("/api/v1/storage")
         return self._parse(DiskUsageResponse, data)

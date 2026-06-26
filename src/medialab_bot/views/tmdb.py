@@ -1,7 +1,8 @@
 import discord
 
-from medialab_bot.client import TorrentDownloaderClient
+from medialab_bot.client import OrchestratorClient
 from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+from medialab_bot.media import from_tmdb_media_type
 from medialab_bot.schemas.tmdb import TmdbSearchResult
 from medialab_bot.views.torrent import TorrentSelectMenu
 
@@ -10,7 +11,7 @@ class TmdbSelectMenu(discord.ui.View):
     def __init__(
         self,
         results: list[TmdbSearchResult],
-        client: TorrentDownloaderClient,
+        client: OrchestratorClient,
         max_results: int,
         results_per_resolution: int,
     ) -> None:
@@ -47,6 +48,14 @@ class TmdbSelectMenu(discord.ui.View):
             )
             return
 
+        media_type = from_tmdb_media_type(result.media_type)
+        if media_type is None:
+            await interaction.response.send_message(
+                f"Cannot download a '{result.media_type}' result. Pick a movie or show.",
+                ephemeral=True,
+            )
+            return
+
         await interaction.response.defer(ephemeral=True)
         await interaction.edit_original_response(
             content=f"Searching for torrents matching **{result.title} ({result.year})**...",
@@ -62,7 +71,11 @@ class TmdbSelectMenu(discord.ui.View):
 
         try:
             view = TorrentSelectMenu(
-                torrent_response.data, self._client, self._results_per_resolution
+                torrent_response.data,
+                self._client,
+                self._results_per_resolution,
+                media_type=media_type,
+                tmdb_id=result.tmdb_id,
             )
         except ValueError:
             await interaction.edit_original_response(

@@ -4,33 +4,35 @@ import logging
 import discord
 from discord.ext import commands
 
-from medialab_bot.client import TorrentDownloaderClient
+from medialab_bot.client import OrchestratorClient
+from medialab_bot.cogs.jobs import JobsCog
 from medialab_bot.cogs.search import SearchCog
 from medialab_bot.cogs.status import StatusCog
-from medialab_bot.cogs.torrent import TorrentCog
 from medialab_bot.config import AppConfig
 
 
 async def _run(config: AppConfig) -> None:
     logger = logging.getLogger(__name__)
 
-    async with TorrentDownloaderClient(
-        base_url=config.torrent_downloader_url,
-        api_key=config.torrent_downloader_api_key,
-        save_path=config.torrent_save_path,
-        tmp_docker_save_path=config.tmp_docker_save_path,
+    async with OrchestratorClient(
+        base_url=config.orchestrator_url,
+        api_key=config.orchestrator_api_key,
         torrent_search_timeout=config.torrent_search_timeout_seconds,
     ) as client:
         health = await client.health()
         if health is None:
-            logger.warning("torrent-downloader unreachable at startup")
-        elif not health.vpn_interface_bound:
-            logger.warning("torrent-downloader reachable but VPN interface not bound")
+            logger.warning("medialab-orchestrator unreachable at startup")
         else:
+            down = health.downstream
             logger.info(
-                "torrent-downloader healthy (uptime=%.1fs, vpn=bound)",
+                "orchestrator healthy (uptime=%.1fs); downstream: "
+                "torrent-downloader=%s, medialab-jellyfin=%s",
                 health.uptime_seconds,
+                "up" if down.torrent_downloader else "down",
+                "up" if down.medialab_jellyfin else "down",
             )
+            if not (down.torrent_downloader and down.medialab_jellyfin):
+                logger.warning("one or more downstream workers are unreachable")
 
         guild = discord.Object(id=config.discord_guild_id)
         intents = discord.Intents.default()
@@ -39,7 +41,7 @@ async def _run(config: AppConfig) -> None:
             async def setup_hook(self) -> None:
                 await self.add_cog(SearchCog(client, config))
                 await self.add_cog(StatusCog(client))
-                await self.add_cog(TorrentCog(client, config))
+                await self.add_cog(JobsCog(client))
                 self.tree.copy_global_to(guild=guild)
                 synced = await self.tree.sync(guild=guild)
                 logger.info(

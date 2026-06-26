@@ -2,12 +2,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from medialab_bot.client import TorrentDownloaderClient
+from medialab_bot.client import OrchestratorClient
 from medialab_bot.embeds import storage_embed, transfers_embed
 
 
 class StatusCog(commands.Cog):
-    def __init__(self, client: TorrentDownloaderClient) -> None:
+    def __init__(self, client: OrchestratorClient) -> None:
         self._client = client
 
     @app_commands.command(name="transfers", description="List active torrent transfers")
@@ -19,7 +19,7 @@ class StatusCog(commands.Cog):
             await interaction.followup.send("Failed to fetch transfers.", ephemeral=True)
             return
 
-        if not response.data:
+        if not response.transfers.data:
             await interaction.followup.send("No active transfers.", ephemeral=True)
             return
 
