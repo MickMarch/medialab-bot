@@ -14,16 +14,12 @@ class _BaseClient:
         self,
         base_url: str,
         api_key: str,
-        save_path: str,
-        tmp_docker_save_path: str,
         torrent_search_timeout: float = 30.0,
     ) -> None:
         self._http = httpx.AsyncClient(
             base_url=base_url,
             headers={"X-API-Key": api_key},
         )
-        self._save_path = save_path
-        self._tmp_docker_save_path = tmp_docker_save_path
         self._torrent_search_timeout = torrent_search_timeout
 
     async def _get(

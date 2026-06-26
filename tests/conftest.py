@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from medialab_bot.schemas.system import HealthResponse
+from medialab_bot.schemas.system import DownstreamHealth, HealthResponse
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def mock_client():
         return_value=HealthResponse(
             status="online",
             uptime_seconds=42.0,
-            vpn_interface_bound=True,
+            downstream=DownstreamHealth(torrent_downloader=True, medialab_jellyfin=True),
         )
     )
     client.close = AsyncMock()

@@ -1,7 +1,8 @@
 # CLAUDE.md - medialab-bot
 
-Discord bot that provides slash command UI for the torrent-downloader service.
-Independent git repo inside the `medialab/` workspace.
+Discord bot providing the slash-command UI for the medialab suite. It talks to
+exactly one service - the medialab-orchestrator gateway - which fronts the whole
+media lifecycle. Independent git repo inside the `medialab/` workspace.
 
 ---
 
@@ -28,95 +29,119 @@ Copy `.env.example` to `.env` and populate. Config loads via `pydantic-settings`
 Required:
 - `DISCORD_TOKEN` - Discord bot token
 - `DISCORD_GUILD_ID` - Guild (server) ID to register slash commands against
-- `TORRENT_DOWNLOADER_URL` - Base URL of torrent-downloader (e.g. `http://127.0.0.1:8000`)
-- `TORRENT_DOWNLOADER_API_KEY` - Value for `X-API-Key` header sent to torrent-downloader
+- `ORCHESTRATOR_URL` - Base URL of medialab-orchestrator (e.g. `http://127.0.0.1:8000`)
+- `ORCHESTRATOR_API_KEY` - Value for `X-API-Key` header sent to the orchestrator
 
 Optional (defaults shown):
-- `LOG_LEVEL=INFO`
+- `SELECT_MAX_RESULTS=25`, `TORRENT_RESULTS_PER_RESOLUTION=5`
+- `TORRENT_SEARCH_TIMEOUT_SECONDS=30.0`, `LOG_LEVEL=INFO`
 
 ## Architecture
 
-Thin UI layer. No business logic - delegates all work to torrent-downloader over HTTP.
+Thin UI layer. No business logic - the bot talks to exactly one service, the
+medialab-orchestrator gateway, which fronts the whole lifecycle and fans out to
+the downstream workers. The bot holds one URL + one key and no placement config.
 
 ```
 Discord user
     | slash command
 medialab-bot (discord.py)
     | HTTP + X-API-Key header
-torrent-downloader (FastAPI, port 8000)
-    |
-qBittorrent + TMDB
+medialab-orchestrator (gateway) --> torrent-downloader (qBittorrent + TMDB)
+                                \--> medialab-jellyfin (Jellyfin)
 ```
 
-**Tech stack:** `discord.py`, `uv`, `hatchling + hatch-vcs`, `pydantic-settings`, `httpx`
+**Tech stack:** `discord.py`, `uv`, `hatchling + hatch-vcs`, `pydantic-settings`,
+`httpx`, `medialab-contracts` (shared `MediaType`, `ErrorResponse`, `TransferInfo`).
 
-**Multi-step download flow:**
-1. User calls `/search <query> [type]`
-   - Always calls `GET /api/v1/search/tmdb?query=...` first to get TMDB IDs and a result list
-   - If `type` provided: immediately fetches type-specific detail for each result via `/search/tmdb/movie/{id}` or `/search/tmdb/show/{id}` - richer metadata
-   - If no `type`: presents multi-search results as-is
-   - Bot presents results as Discord embed with Select menu
-2. User picks title - bot calls `GET /api/v1/search/torrents`, presents resolution options as Select menu
-3. User picks torrent - bot calls `POST /api/v1/download` with the selected magnet URI
-4. State lives entirely in Discord message components - no server-side session
+**Multi-step download flow (the only download path):**
+1. User calls `/search <query>` - bot calls `GET /api/v1/search/tmdb`, presents
+   results as an embed + Select menu. Each option carries `tmdb_id` + media type.
+2. User picks a title - bot calls `GET /api/v1/search/torrents`, presents
+   resolution options. **The picked `tmdb_id` + `media_type` are threaded into
+   the torrent picker** (the gateway requires both at download; it does no title
+   guessing).
+3. User picks a torrent - bot calls `POST /api/v1/download` with
+   `{magnet_uri, media_type, tmdb_id}`. The gateway creates a pipeline job and
+   returns it; the bot shows the job hash so the user can `/jobs` it.
+4. State lives entirely in Discord message components - no server-side session.
 
-**All Discord interaction state is stored in the message components themselves** (custom_id encodes what the next step is). No database, no in-memory session dict needed.
+TMDB classifies titles `movie`/`tv`; the suite uses `movie`/`show`
+(`medialab_bot.media.from_tmdb_media_type` maps at the boundary).
 
-**Response models:** `client.py` deserializes all torrent-downloader responses into Pydantic models defined in `schemas/`. Cogs receive typed objects, never raw dicts. `main.py` stays thin - bot init, cog loading, startup health check only.
+**Response models:** the client deserializes all gateway responses into Pydantic
+models in `schemas/` (shared shapes re-exported from `medialab-contracts`). Cogs
+receive typed objects, never raw dicts. `main.py` stays thin - bot init, cog
+loading, aggregated startup health.
 
-## torrent-downloader API contract
+## medialab-orchestrator API contract
 
-Base URL from `TORRENT_DOWNLOADER_URL`. All requests (except health) send `X-API-Key: <TORRENT_DOWNLOADER_API_KEY>` header.
+Base URL from `ORCHESTRATOR_URL`. All requests (except health) send
+`X-API-Key: <ORCHESTRATOR_API_KEY>`.
 
 | Endpoint | Method | Bot uses it for |
 |---|---|---|
-| `/api/v1/health` | GET | Startup connectivity check |
-| `/api/v1/search/tmdb` | GET | `/search` command - params: `query`, `type` (movie/tv) |
-| `/api/v1/search/tmdb/movie/{tmdb_id}` | GET | Fetch movie detail after user selects result |
-| `/api/v1/search/tmdb/show/{tmdb_id}` | GET | Fetch show detail after user selects result |
-| `/api/v1/search/torrents` | GET | Torrent picker - params: `query` |
-| `/api/v1/download` | POST | Submit confirmed magnet URI |
-| `/api/v1/transfers` | GET | `/transfers` command |
-| `/api/v1/storage` | GET | `/storage` command |
+| `/api/v1/health` | GET | Startup check; aggregated downstream reachability |
+| `/api/v1/search/tmdb` | GET | `/search` - param: `query` |
+| `/api/v1/search/tmdb/{movie,show}/{tmdb_id}` | GET | Detail after a result pick |
+| `/api/v1/search/torrents` | GET | Torrent picker - param: `query` |
+| `/api/v1/download` | POST | Submit `{magnet_uri, media_type, tmdb_id}`; returns a job (202) |
+| `/api/v1/transfers` | GET | `/transfers` - merged live transfers + job rows |
+| `/api/v1/jobs` | GET | `/jobs` - pipeline lifecycle; optional `status` filter |
+| `/api/v1/jobs/{hash}/retry` | POST | Retry a failed job from its last good state |
+| `/api/v1/storage` | GET | `/storage` - no path param |
 
-Error shape from torrent-downloader: `{"status": "error", "code": "<ErrorCode>", "detail": "..."}`.
-Rate limit breach returns 429 with `Retry-After` header - bot should surface this to the user.
+Error shape: `{"status": "error", "code": "<ErrorCode>", "detail": "..."}`.
+Rate-limit breach returns 429 with `Retry-After` - surface it to the user.
 
-v1.1 endpoints (not yet available - skip these commands until torrent-downloader ships v1.1):
-- `GET /api/v1/search/trending?type=movie|show&window=day|week` - for `/trending`
-- `GET /api/v1/search/similar?tmdb_id=123&type=movie|show` - for `/similar`
+`/trending` + `/similar` remain deferred (await torrent-downloader's TMDB
+roadmap, surfaced through the gateway when it ships).
 
 ## Slash commands
 
 | Command | Status | Description |
 |---|---|---|
-| `/search <query> <type>` | planned | TMDB search, embed + select menu |
-| `/torrent <query>` | planned | Skip TMDB, go straight to torrent search |
-| `/download` | planned | Confirm and submit selected magnet |
-| `/transfers` | planned | List active downloads |
-| `/storage` | planned | Disk usage |
-| `/trending <type>` | blocked on v1.1 | Trending movies or shows |
-| `/similar <title> <type>` | blocked on v1.1 | Similar titles |
+| `/search <query>` | live | TMDB search; sole download path (threads tmdb_id+media_type) |
+| `/transfers` | live | Active transfers merged with pipeline jobs |
+| `/storage` | live | Disk usage |
+| `/jobs [status]` | live | Pipeline lifecycle view; retry control for failed jobs |
+| `/trending <type>` | deferred | Awaits gateway TMDB-trending passthrough |
+| `/similar <title> <type>` | deferred | Awaits gateway TMDB-similar passthrough |
 
-## Module layout (target structure)
+`/torrent` was removed: it cannot supply the `tmdb_id` + `media_type` the gateway
+requires, so downloads go through `/search`.
+
+## Module layout
 
 ```
 src/medialab_bot/
 ├── __init__.py
-├── main.py          - bot entrypoint, registers cogs, startup health check, connects
+├── main.py          - bot entrypoint, cog registration, aggregated startup health
 ├── config.py        - AppConfig pydantic-settings instance
-├── client.py        - httpx AsyncClient wrapper; deserializes responses into schemas/
+├── media.py         - TMDB media-type (movie/tv) -> contracts MediaType (movie/show)
+├── client/          - OrchestratorClient: httpx wrapper as mixins, parses into schemas/
+│   ├── __init__.py  - OrchestratorClient (composes the mixins)
+│   ├── _base.py     - shared GET/POST + parse helpers
+│   ├── _tmdb.py     - search proxies
+│   ├── _torrents.py - torrent search + download (media_type + tmdb_id)
+│   ├── _status.py   - health, transfers, storage
+│   └── _jobs.py     - list_jobs, retry_job
 ├── schemas/
-│   ├── tmdb.py      - TmdbMultiResult, TmdbMovieDetail, TmdbShowDetail
-│   ├── torrents.py  - TorrentSearchResult, grouped by resolution
-│   ├── transfers.py - Transfer, TransferList
-│   ├── storage.py   - StorageInfo
-│   └── errors.py    - ErrorResponse (mirrors torrent-downloader error shape)
+│   ├── tmdb.py      - TMDB search/detail models
+│   ├── torrents.py  - torrent results grouped by resolution
+│   ├── transfers.py - MergedTransfersResponse (live transfers + job rows)
+│   ├── jobs.py      - JobView, JobsResponse
+│   ├── system.py    - aggregated HealthResponse, DiskUsageResponse
+│   ├── downloads.py - DownloadResponse (wraps a JobView)
+│   └── errors.py    - re-export of contracts ErrorResponse
 ├── cogs/
-│   ├── search.py    - /search, /torrent commands
-│   ├── download.py  - /download command + component callbacks
+│   ├── search.py    - /search command
 │   ├── status.py    - /transfers, /storage commands
-│   └── trending.py  - /trending, /similar (v1.1, not yet implemented)
+│   └── jobs.py      - /jobs command (+ retry view)
+├── views/
+│   ├── tmdb.py      - TmdbSelectMenu (threads tmdb_id+media_type onward)
+│   ├── torrent.py   - TorrentSelectMenu (submits download)
+│   └── jobs.py      - JobRetryView
 └── embeds.py        - Discord embed builders (keeps cogs thin)
 
 tests/

@@ -2,13 +2,13 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from medialab_bot.client import TorrentDownloaderClient
+from medialab_bot.client import OrchestratorClient
 from medialab_bot.config import AppConfig
 from medialab_bot.views.tmdb import TmdbSelectMenu
 
 
 class SearchCog(commands.Cog):
-    def __init__(self, client: TorrentDownloaderClient, config: AppConfig) -> None:
+    def __init__(self, client: OrchestratorClient, config: AppConfig) -> None:
         self._client = client
         self._config = config
 

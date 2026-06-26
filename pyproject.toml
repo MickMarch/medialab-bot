@@ -10,6 +10,7 @@ dependencies = [
     "aiohttp>=3.14.1",
     "discord.py>=2.4",
     "httpx>=0.27",
+    "medialab-contracts",
     "pydantic>=2.0",
     "pydantic-settings>=2.14.2",
 ]
@@ -67,7 +68,13 @@ disable_error_code = [
     "func-returns-value",
     "method-assign",
     "var-annotated",
+    # discord.py's followup.send view= defaults to a MISSING sentinel, not None;
+    # passing an optional View is fine at runtime but the stub types it strict.
+    "arg-type",
 ]
+
+[tool.uv.sources]
+medialab-contracts = { git = "https://github.com/MickMarch/medialab-contracts", rev = "v0.2.0" }
 
 [dependency-groups]
 dev = [

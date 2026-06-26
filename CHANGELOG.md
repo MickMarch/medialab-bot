@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `/jobs [status]` command surfacing the orchestrator's pipeline lifecycle, with
+  a retry control for failed jobs (`POST /jobs/{hash}/retry`).
+- `medialab-contracts` dependency (pinned `v0.2.0`); `MediaType`, `ErrorResponse`,
+  and `TransferInfo` now come from the shared package instead of local copies.
+- `media.py` mapping TMDB's `movie`/`tv` media types onto the shared
+  `MediaType` (`movie`/`show`).
 - Ruff lint + format configuration enforcing the workspace rule set
   (`E,F,I,UP,B,SIM,PLR2004`, magic-value ban via `PLR2004`).
 - Mypy static type checking with the pydantic plugin; discord.py
@@ -20,9 +26,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Rewired the bot onto the medialab-orchestrator gateway as its single
+  dependency.** All calls now target the orchestrator; the client is renamed
+  `OrchestratorClient`. Download submits `{magnet_uri, media_type, tmdb_id}` and
+  receives a pipeline job; `/transfers` renders the gateway's merged
+  transfers+jobs view; `/storage` no longer sends a path; startup health uses
+  the orchestrator's aggregated downstream-reachability signal.
+- The TMDB pick now threads `tmdb_id` + `media_type` through to the download
+  call (previously only the title string flowed on), as the gateway requires
+  both and does no title guessing.
 - Bumped `aiohttp` (>=3.14.1) and `pydantic-settings` (>=2.14.2) to clear CVEs
   surfaced by the new dependency audit.
 - Replaced a magic `200` status comparison with `httpx.codes.OK`.
+
+### Removed
+
+- The `/torrent` direct-search command (and its cog): it cannot supply the
+  `tmdb_id` + `media_type` the gateway requires, so `/search` is the sole
+  download path. The torrent resolution-picker view is retained for the
+  `/search` flow.
+- Bot tech-debt config (`torrent_downloader_url`/`_api_key`,
+  `torrent_save_path`, `tmp_docker_save_path`), replaced by `orchestrator_url`
+  and `orchestrator_api_key`. Placement and downstream fan-out live behind the
+  gateway now.
 
 ## [1.0.0] - 2026-06-08
 

@@ -1,6 +1,7 @@
 import discord
+from medialab_contracts import MediaType
 
-from medialab_bot.client import TorrentDownloaderClient
+from medialab_bot.client import OrchestratorClient
 from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
 from medialab_bot.schemas.torrents import TorrentResult
 
@@ -9,11 +10,16 @@ class TorrentSelectMenu(discord.ui.View):
     def __init__(
         self,
         groups: dict[str, list[TorrentResult]],
-        client: TorrentDownloaderClient,
+        client: OrchestratorClient,
         results_per_resolution: int,
+        media_type: MediaType,
+        tmdb_id: int,
     ) -> None:
         super().__init__()
         self._client = client
+        # Threaded from the TMDB pick: the gateway requires both at download.
+        self._media_type = media_type
+        self._tmdb_id = tmdb_id
         self._indexed: dict[str, TorrentResult] = {}
 
         options: list[discord.SelectOption] = []
@@ -56,7 +62,7 @@ class TorrentSelectMenu(discord.ui.View):
             return
 
         await interaction.response.defer(ephemeral=True)
-        response = await self._client.download(result.file_url)
+        response = await self._client.download(result.file_url, self._media_type, self._tmdb_id)
         if response is None:
             await interaction.followup.send(
                 "Download request failed. Please try again.",
@@ -65,6 +71,7 @@ class TorrentSelectMenu(discord.ui.View):
             return
 
         await interaction.followup.send(
-            f"Download started: **{result.file_name}**",
+            f"Download started: **{result.file_name}**\n"
+            f"Track it with `/jobs` (hash `{response.job.torrent_hash}`).",
             ephemeral=True,
         )

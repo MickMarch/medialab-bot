@@ -1,10 +1,11 @@
 from unittest.mock import AsyncMock
 
 import pytest
+from medialab_contracts import TransferInfo
 
 from medialab_bot.cogs.status import StatusCog
 from medialab_bot.schemas.system import DiskUsageResponse
-from medialab_bot.schemas.transfers import TransferInfo, TransferInfoResponse
+from medialab_bot.schemas.transfers import MergedTransfersResponse
 from tests.helpers import make_interaction
 
 
@@ -23,8 +24,12 @@ def _make_transfer(**kwargs) -> TransferInfo:
     return TransferInfo(**{**defaults, **kwargs})
 
 
-def _make_transfers_response(transfers: list[TransferInfo]) -> TransferInfoResponse:
-    return TransferInfoResponse(status="success", message="", data=transfers)
+def _make_transfers_response(transfers: list[TransferInfo]) -> MergedTransfersResponse:
+    return MergedTransfersResponse(
+        status="success",
+        transfers={"status": "success", "message": "", "data": transfers},
+        jobs=[],
+    )
 
 
 def _make_storage_response() -> DiskUsageResponse:
