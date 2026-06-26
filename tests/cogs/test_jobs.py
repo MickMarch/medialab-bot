@@ -77,16 +77,25 @@ async def test_jobs_attaches_retry_view_when_failed_present(mock_client):
 
 
 @pytest.mark.asyncio
-async def test_jobs_no_retry_view_when_none_failed(mock_client):
+async def test_jobs_omits_view_when_none_failed(mock_client):
+    # discord.py rejects view=None; the cog must omit the kwarg entirely when
+    # there is no failed job, not pass None. Mirror that contract in the mock so
+    # a regression (passing view=None) fails here instead of only at runtime.
     mock_client.list_jobs = AsyncMock(
         return_value=JobsResponse(status="success", jobs=[_make_job(status="DONE")])
     )
     cog = JobsCog(mock_client)
     interaction = make_interaction()
 
+    async def _send(*args, **kwargs):
+        if "view" in kwargs and kwargs["view"] is None:
+            raise TypeError("expected view parameter to be of type View, not NoneType")
+
+    interaction.followup.send = AsyncMock(side_effect=_send)
+
     await cog.jobs.callback(cog, interaction)
 
-    assert interaction.followup.send.call_args.kwargs.get("view") is None
+    assert "view" not in interaction.followup.send.call_args.kwargs
 
 
 @pytest.mark.asyncio
