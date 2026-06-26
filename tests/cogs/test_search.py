@@ -1,16 +1,19 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
+import pytest
+
+from medialab_bot.cogs.search import SearchCog
+from medialab_bot.schemas.downloads import DownloadResponse
 from medialab_bot.schemas.tmdb import TmdbSearchResponse, TmdbSearchResult
 from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
-from medialab_bot.schemas.downloads import DownloadResponse
-from medialab_bot.cogs.search import SearchCog
 from medialab_bot.views.tmdb import TmdbSelectMenu
 from medialab_bot.views.torrent import TorrentSelectMenu
 from tests.helpers import make_interaction
 
 
-def _make_tmdb_result(tmdb_id: int = 1, title: str = "Test Movie", year: str = "2024") -> TmdbSearchResult:
+def _make_tmdb_result(
+    tmdb_id: int = 1, title: str = "Test Movie", year: str = "2024"
+) -> TmdbSearchResult:
     return TmdbSearchResult(
         tmdb_id=tmdb_id,
         title=title,
@@ -54,10 +57,13 @@ def _tmdb_view(results, client, mock_config) -> TmdbSelectMenu:
 
 
 def _torrent_view(groups, client, mock_config) -> TorrentSelectMenu:
-    return TorrentSelectMenu(groups, client, results_per_resolution=mock_config.torrent_results_per_resolution)
+    return TorrentSelectMenu(
+        groups, client, results_per_resolution=mock_config.torrent_results_per_resolution
+    )
 
 
 # --- /search command ---
+
 
 @pytest.mark.asyncio
 async def test_search_defers_before_api_call(mock_client, mock_config):
@@ -110,6 +116,7 @@ async def test_search_edits_message_with_error_on_client_none(mock_client, mock_
 
 
 # --- TmdbSelectMenu ---
+
 
 @pytest.mark.asyncio
 async def test_tmdb_select_calls_torrent_search_with_title_and_year(mock_client, mock_config):
@@ -197,6 +204,7 @@ async def test_tmdb_select_handles_malformed_data(mock_client, mock_config):
 
 # --- TorrentSelectMenu ---
 
+
 @pytest.mark.asyncio
 async def test_torrent_select_calls_download_with_correct_magnet(mock_client, mock_config):
     groups = {
@@ -208,7 +216,9 @@ async def test_torrent_select_calls_download_with_correct_magnet(mock_client, mo
             _make_torrent_result(magnet="magnet:?xt=urn:btih:ccc", seeders=50),
         ],
     }
-    mock_client.download = AsyncMock(return_value=DownloadResponse(status="success", message="Added."))
+    mock_client.download = AsyncMock(
+        return_value=DownloadResponse(status="success", message="Added.")
+    )
     view = _torrent_view(groups, mock_client, mock_config)
     interaction = make_interaction()
     interaction.configure_mock(data={"values": ["1080p:1"]})
@@ -252,15 +262,17 @@ async def test_torrent_select_groups_all_resolutions(mock_client, mock_config):
     }
     view = _torrent_view(groups, mock_client, mock_config)
     labels = [o.label for o in view.select.options]
-    assert any("1080p" in l for l in labels)
-    assert any("720p" in l for l in labels)
-    assert any("480p" in l for l in labels)
+    assert any("1080p" in lbl for lbl in labels)
+    assert any("720p" in lbl for lbl in labels)
+    assert any("480p" in lbl for lbl in labels)
 
 
 @pytest.mark.asyncio
 async def test_torrent_select_sends_ephemeral_confirm_on_success(mock_client, mock_config):
     groups = {"1080p": [_make_torrent_result(magnet="magnet:?xt=urn:btih:abc")]}
-    mock_client.download = AsyncMock(return_value=DownloadResponse(status="success", message="Added."))
+    mock_client.download = AsyncMock(
+        return_value=DownloadResponse(status="success", message="Added.")
+    )
     view = _torrent_view(groups, mock_client, mock_config)
     interaction = make_interaction()
     interaction.configure_mock(data={"values": ["1080p:0"]})

@@ -43,9 +43,7 @@ def _make_storage_response() -> DiskUsageResponse:
 
 @pytest.mark.asyncio
 async def test_transfers_defers_before_api_call(mock_client):
-    mock_client.get_transfers = AsyncMock(
-        return_value=_make_transfers_response([_make_transfer()])
-    )
+    mock_client.get_transfers = AsyncMock(return_value=_make_transfers_response([_make_transfer()]))
     cog = StatusCog(mock_client)
     interaction = make_interaction()
 
@@ -56,9 +54,7 @@ async def test_transfers_defers_before_api_call(mock_client):
 
 @pytest.mark.asyncio
 async def test_transfers_sends_embed_on_results(mock_client):
-    mock_client.get_transfers = AsyncMock(
-        return_value=_make_transfers_response([_make_transfer()])
-    )
+    mock_client.get_transfers = AsyncMock(return_value=_make_transfers_response([_make_transfer()]))
     cog = StatusCog(mock_client)
     interaction = make_interaction()
 

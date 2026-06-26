@@ -22,9 +22,13 @@ class TorrentSelectMenu(discord.ui.View):
             for i, result in enumerate(top):
                 key = f"{resolution}:{i}"
                 self._indexed[key] = result
-                label = f"{resolution} - {result.file_name}"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
+                label = f"{resolution} - {result.file_name}"[
+                    :DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+                ]
                 description = f"{result.seeders} seeders"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
-                options.append(discord.SelectOption(label=label, value=key, description=description))
+                options.append(
+                    discord.SelectOption(label=label, value=key, description=description)
+                )
 
         if not options:
             raise ValueError("TorrentSelectMenu requires at least one result")

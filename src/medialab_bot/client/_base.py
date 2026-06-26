@@ -31,7 +31,7 @@ class _BaseClient:
     ) -> dict | None:
         try:
             response = await self._http.get(path, params=params or {}, timeout=timeout)
-            if response.status_code != 200:
+            if response.status_code != httpx.codes.OK:
                 logger.warning("GET %s returned %d", path, response.status_code)
                 return None
             return response.json()

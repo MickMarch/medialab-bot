@@ -25,7 +25,9 @@ class TmdbSelectMenu(discord.ui.View):
             discord.SelectOption(
                 label=f"{r.title} ({r.year})"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH],
                 value=f"{r.tmdb_id}:{r.media_type}",
-                description=f"{r.media_type} - ⭐ {r.vote_average}"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH],
+                description=f"{r.media_type} - ⭐ {r.vote_average}"[
+                    :DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+                ],
             )
             for r in top_results
         ]
@@ -59,7 +61,9 @@ class TmdbSelectMenu(discord.ui.View):
             return
 
         try:
-            view = TorrentSelectMenu(torrent_response.data, self._client, self._results_per_resolution)
+            view = TorrentSelectMenu(
+                torrent_response.data, self._client, self._results_per_resolution
+            )
         except ValueError:
             await interaction.edit_original_response(
                 content="No valid torrents found for that title. Try a different search.",

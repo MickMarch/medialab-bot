@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import AsyncMock
 
-from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
+import pytest
+
 from medialab_bot.cogs.torrent import TorrentCog
+from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
 from tests.helpers import make_interaction
 
 
