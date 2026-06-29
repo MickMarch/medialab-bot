@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-29
+
+Breaking: the bot is rewired onto the medialab-orchestrator gateway as its sole
+dependency. The client surface, config fields, and command set changed
+incompatibly with v1.0.0 (which talked directly to torrent-downloader).
+
 ### Fixed
 
 - `/jobs` crashed with `TypeError: expected view parameter to be of type View ...
@@ -16,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Dockerfile + `.dockerignore`: two-stage uv install with git for the
+  `medialab-contracts` git-ref dependency, non-root user, no `EXPOSE`
+  (outbound-only client). Enables the bot in the root `docker-compose.yml`.
 - `/jobs [status]` command surfacing the orchestrator's pipeline lifecycle, with
   a retry control for failed jobs (`POST /jobs/{hash}/retry`).
 - `medialab-contracts` dependency (pinned `v0.2.0`); `MediaType`, `ErrorResponse`,
