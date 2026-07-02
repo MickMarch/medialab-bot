@@ -130,13 +130,29 @@ async def test_search_tmdb_show_calls_correct_path(client):
 
 
 @pytest.mark.asyncio
-async def test_search_torrents_passes_query_param(client):
+async def test_search_torrents_passes_query_and_media_type(client):
     payload = {"status": "success", "message": "", "data": {}}
     mock_get = AsyncMock(return_value=_mock_response(200, payload))
     with patch.object(client._http, "get", new=mock_get):
-        result = await client.search_torrents("dune")
+        result = await client.search_torrents("dune", MediaType.MOVIE)
     assert isinstance(result, TorrentSearchResponse)
-    assert mock_get.call_args.kwargs.get("params", {}).get("query") == "dune"
+    params = mock_get.call_args.kwargs.get("params", {})
+    assert params.get("query") == "dune"
+    assert params.get("media_type") == "movie"
+    assert "season" not in params
+    assert "episode" not in params
+
+
+@pytest.mark.asyncio
+async def test_search_torrents_passes_season_and_episode(client):
+    payload = {"status": "success", "message": "", "data": {}}
+    mock_get = AsyncMock(return_value=_mock_response(200, payload))
+    with patch.object(client._http, "get", new=mock_get):
+        await client.search_torrents("the wire", MediaType.SHOW, season=2, episode=5)
+    params = mock_get.call_args.kwargs.get("params", {})
+    assert params.get("media_type") == "show"
+    assert params.get("season") == 2
+    assert params.get("episode") == 5
 
 
 # --- download (gateway body: media_type + tmdb_id, no save_path) ---

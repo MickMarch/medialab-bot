@@ -8,10 +8,21 @@ _DOWNLOAD_ACCEPTED = 202
 
 
 class _TorrentsMixin(_BaseClient):
-    async def search_torrents(self, query: str) -> TorrentSearchResponse | None:
+    async def search_torrents(
+        self,
+        query: str,
+        media_type: MediaType,
+        season: int | None = None,
+        episode: int | None = None,
+    ) -> TorrentSearchResponse | None:
+        params: dict[str, str | int] = {"query": query, "media_type": media_type.value}
+        if season is not None:
+            params["season"] = season
+        if episode is not None:
+            params["episode"] = episode
         data = await self._get(
             "/api/v1/search/torrents",
-            params={"query": query},
+            params=params,
             timeout=self._torrent_search_timeout,
         )
         return self._parse(TorrentSearchResponse, data)
