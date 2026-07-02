@@ -57,9 +57,13 @@ medialab-orchestrator (gateway) --> torrent-downloader (qBittorrent + TMDB)
 **Multi-step download flow (the only download path):**
 1. User calls `/search <query>` - bot calls `GET /api/v1/search/tmdb`, presents
    results as an embed + Select menu. Each option carries `tmdb_id` + media type.
-2. User picks a title - bot calls `GET /api/v1/search/torrents`, presents
-   resolution options. **The picked `tmdb_id` + `media_type` are threaded into
-   the torrent picker** (the gateway requires both at download; it does no title
+2. User picks a title. For a **movie**, the bot calls `GET /api/v1/search/torrents`
+   directly and presents resolution options. For a **show**, the bot first fetches
+   the season list (`GET /api/v1/search/tmdb/show/{id}`) and presents a scope
+   picker (whole series / a season / a single episode); the chosen
+   `season`/`episode` are passed to the torrent search so the results target the
+   requested season. **The picked `tmdb_id` + `media_type` are threaded into the
+   torrent picker** (the gateway requires both at download; it does no title
    guessing).
 3. User picks a torrent - bot calls `POST /api/v1/download` with
    `{magnet_uri, media_type, tmdb_id}`. The gateway creates a pipeline job and
@@ -84,7 +88,7 @@ Base URL from `ORCHESTRATOR_URL`. All requests (except health) send
 | `/api/v1/health` | GET | Startup check; aggregated downstream reachability |
 | `/api/v1/search/tmdb` | GET | `/search` - param: `query` |
 | `/api/v1/search/tmdb/{movie,show}/{tmdb_id}` | GET | Detail after a result pick |
-| `/api/v1/search/torrents` | GET | Torrent picker - param: `query` |
+| `/api/v1/search/torrents` | GET | Torrent picker - params: `query`, `media_type` (required); shows add optional `season`/`episode` |
 | `/api/v1/download` | POST | Submit `{magnet_uri, media_type, tmdb_id}`; returns a job (202) |
 | `/api/v1/transfers` | GET | `/transfers` - merged live transfers + job rows |
 | `/api/v1/jobs` | GET | `/jobs` - pipeline lifecycle; optional `status` filter |
@@ -139,8 +143,9 @@ src/medialab_bot/
 │   ├── status.py    - /transfers, /storage commands
 │   └── jobs.py      - /jobs command (+ retry view)
 ├── views/
-│   ├── tmdb.py      - TmdbSelectMenu (threads tmdb_id+media_type onward)
-│   ├── torrent.py   - TorrentSelectMenu (submits download)
+│   ├── tmdb.py      - TmdbSelectMenu (movie -> torrent search; show -> scope picker)
+│   ├── scope.py     - SeasonScopeSelectMenu + EpisodeScopeSelectMenu (TV targeting)
+│   ├── torrent.py   - TorrentSelectMenu (submits download) + run_torrent_search helper
 │   └── jobs.py      - JobRetryView
 └── embeds.py        - Discord embed builders (keeps cogs thin)
 

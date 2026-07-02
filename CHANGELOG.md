@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- TV season/episode scope picker. After picking a show, the bot fetches the
+  season list from `GET /search/tmdb/show/{id}` and presents a scope Select
+  (whole series / a season / a single episode). Picking a season opens an
+  episode Select (whole season / a specific episode). The chosen scope is
+  threaded into `GET /search/torrents` so older seasons are no longer buried by
+  the latest season's higher-seeded packs. Movies are unaffected - they skip
+  straight to the torrent picker.
+- `run_torrent_search` shared helper (`views/torrent.py`) driving the scoped
+  search + torrent picker for both the movie path and the TV scope pickers.
+
+### Changed
+
+- `OrchestratorClient.search_torrents` now takes a required `media_type` and
+  optional `season`/`episode`.
+- `medialab-contracts` pin bumped to v0.3.0.
+
 ## [2.0.0] - 2026-06-29
 
 Breaking: the bot is rewired onto the medialab-orchestrator gateway as its sole

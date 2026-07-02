@@ -149,7 +149,12 @@ async def test_tmdb_select_calls_torrent_search_with_title_and_year(mock_client,
 
     await view.select.callback(interaction)
 
-    mock_client.search_torrents.assert_awaited_once_with("Dune 2021")
+    mock_client.search_torrents.assert_awaited_once()
+    args = mock_client.search_torrents.await_args.args
+    assert args[0] == "Dune 2021"
+    assert MediaType.MOVIE in args or (
+        mock_client.search_torrents.await_args.kwargs.get("media_type") is MediaType.MOVIE
+    )
 
 
 @pytest.mark.asyncio
@@ -331,10 +336,22 @@ async def test_torrent_select_handles_malformed_value(mock_client, mock_config):
 
 
 @pytest.mark.asyncio
-async def test_tmdb_select_threads_tv_as_show_into_torrent_view(mock_client, mock_config):
+async def test_tmdb_select_show_opens_season_scope_picker(mock_client, mock_config):
+    from medialab_bot.schemas.tmdb import TmdbMediaDetailResponse
+    from medialab_bot.views.scope import SeasonScopeSelectMenu
+
     result = _make_tmdb_result(tmdb_id=1396, title="Breaking Bad", year="2008", media_type="tv")
-    mock_client.search_torrents = AsyncMock(
-        return_value=_make_torrent_response({"1080p": [_make_torrent_result()]})
+    mock_client.search_tmdb_show = AsyncMock(
+        return_value=TmdbMediaDetailResponse(
+            status="success",
+            message="",
+            data={
+                "seasons": [
+                    {"season_number": 1, "name": "Season 1", "episode_count": 7},
+                    {"season_number": 2, "name": "Season 2", "episode_count": 13},
+                ]
+            },
+        )
     )
     view = _tmdb_view([result], mock_client, mock_config)
     interaction = make_interaction()
@@ -342,11 +359,30 @@ async def test_tmdb_select_threads_tv_as_show_into_torrent_view(mock_client, moc
 
     await view.select.callback(interaction)
 
+    # A show pick fetches season detail and opens the scope picker - no immediate
+    # torrent search (the user still has to pick a season/episode scope).
+    mock_client.search_tmdb_show.assert_awaited_once_with(1396)
+    mock_client.search_torrents.assert_not_called()
+    forwarded = interaction.edit_original_response.call_args_list[-1].kwargs["view"]
+    assert isinstance(forwarded, SeasonScopeSelectMenu)
+
+
+@pytest.mark.asyncio
+async def test_tmdb_select_movie_threads_into_torrent_view(mock_client, mock_config):
+    result = _make_tmdb_result(tmdb_id=42, title="Dune", year="2021", media_type="movie")
+    mock_client.search_torrents = AsyncMock(
+        return_value=_make_torrent_response({"1080p": [_make_torrent_result()]})
+    )
+    view = _tmdb_view([result], mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["42:movie"]})
+
+    await view.select.callback(interaction)
+
     forwarded = interaction.edit_original_response.call_args_list[-1].kwargs["view"]
     assert isinstance(forwarded, TorrentSelectMenu)
-    # TMDB "tv" mapped to the shared MediaType.SHOW, with the tmdb_id carried through.
-    assert forwarded._media_type is MediaType.SHOW
-    assert forwarded._tmdb_id == 1396
+    assert forwarded._media_type is MediaType.MOVIE
+    assert forwarded._tmdb_id == 42
 
 
 @pytest.mark.asyncio

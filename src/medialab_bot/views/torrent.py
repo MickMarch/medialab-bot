@@ -6,6 +6,57 @@ from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
 from medialab_bot.schemas.torrents import TorrentResult
 
 
+async def run_torrent_search(
+    interaction: discord.Interaction,
+    client: OrchestratorClient,
+    *,
+    title: str,
+    year: str,
+    media_type: MediaType,
+    tmdb_id: int,
+    results_per_resolution: int,
+    season: int | None = None,
+    episode: int | None = None,
+) -> None:
+    """Runs a scoped torrent search and edits the response with the torrent picker.
+
+    Shared by the movie path (no season/episode) and the TV scope pickers. The
+    interaction must already be deferred by the caller.
+    """
+    await interaction.edit_original_response(
+        content=f"Searching for torrents matching **{title} ({year})**...",
+        view=None,
+    )
+    response = await client.search_torrents(
+        f"{title} {year}", media_type, season=season, episode=episode
+    )
+
+    if response is None or not response.data:
+        await interaction.edit_original_response(
+            content="No torrents found for that scope. Try a different search.",
+        )
+        return
+
+    try:
+        view = TorrentSelectMenu(
+            response.data,
+            client,
+            results_per_resolution,
+            media_type=media_type,
+            tmdb_id=tmdb_id,
+        )
+    except ValueError:
+        await interaction.edit_original_response(
+            content="No valid torrents found for that scope. Try a different search.",
+        )
+        return
+
+    await interaction.edit_original_response(
+        content=f"Torrents for **{title} ({year})**:",
+        view=view,
+    )
+
+
 class TorrentSelectMenu(discord.ui.View):
     def __init__(
         self,
