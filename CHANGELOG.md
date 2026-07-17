@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Show torrent searches no longer append the series' premiere year to the
+  query. Release names do not include it, so "The Wire 2002" returned zero
+  hits for every scope. Shows now search on the bare title; movies keep
+  `Title YYYY`.
+
 ## [2.1.0] - 2026-07-02
 
 ### Added
