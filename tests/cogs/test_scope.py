@@ -85,6 +85,20 @@ class TestSeasonScopeSelection:
         assert kwargs.get("episode") is None
 
     @pytest.mark.asyncio
+    async def test_show_search_query_is_bare_title_without_year(self, mock_client):
+        # Show torrent queries never carry the year - release names do not
+        # include the series' premiere year, so "The Wire 2002" finds nothing.
+        mock_client.search_torrents = AsyncMock(return_value=_torrent_response())
+        view = _season_view(mock_client)
+        interaction = make_interaction()
+        interaction.configure_mock(data={"values": ["all"]})
+
+        await view.select.callback(interaction)
+
+        args = mock_client.search_torrents.await_args.args
+        assert args[0] == "The Wire"
+
+    @pytest.mark.asyncio
     async def test_whole_series_forwards_torrent_picker(self, mock_client):
         mock_client.search_torrents = AsyncMock(return_value=_torrent_response())
         view = _season_view(mock_client)

@@ -27,9 +27,10 @@ async def run_torrent_search(
         content=f"Searching for torrents matching **{title} ({year})**...",
         view=None,
     )
-    response = await client.search_torrents(
-        f"{title} {year}", media_type, season=season, episode=episode
-    )
+    # Movie release names carry the year; show release names do not, so a show
+    # query is the bare title (the season/episode scope refines it downstream).
+    query = title if media_type is MediaType.SHOW else f"{title} {year}"
+    response = await client.search_torrents(query, media_type, season=season, episode=episode)
 
     if response is None or not response.data:
         await interaction.edit_original_response(
