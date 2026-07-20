@@ -16,7 +16,7 @@ BASE_URL = "http://localhost:8000"
 API_KEY = "test-key"
 
 _JOB = {
-    "id": 1,
+    "id": "job-abc",
     "torrent_hash": "abc123",
     "release_name": "Dune.2021.1080p",
     "media_type": "movie",
@@ -177,11 +177,21 @@ async def test_download_sends_media_type_and_tmdb_id(client):
         await client.download("magnet:?xt=urn:btih:abc", MediaType.SHOW, 1396)
     body = mock_post.call_args.kwargs.get("json", {})
     assert body == {
-        "magnet_uri": "magnet:?xt=urn:btih:abc",
+        "source_url": "magnet:?xt=urn:btih:abc",
         "media_type": "show",
         "tmdb_id": 1396,
     }
     assert "save_path" not in body
+
+
+@pytest.mark.asyncio
+async def test_download_sends_torrent_file_url_as_source_url(client):
+    payload = {"status": "success", "job": _JOB}
+    mock_post = AsyncMock(return_value=_mock_response(202, payload))
+    torrent_url = "https://www.torlock.com/tor/1924049.torrent"
+    with patch.object(client._http, "post", new=mock_post):
+        await client.download(torrent_url, MediaType.SHOW, 42)
+    assert mock_post.call_args.kwargs["json"]["source_url"] == torrent_url
 
 
 @pytest.mark.asyncio
@@ -257,9 +267,9 @@ async def test_retry_job_calls_correct_path_and_returns_job(client):
     failed_then_retried = {**_JOB, "status": "STOP_SEEDING"}
     mock_post = AsyncMock(return_value=_mock_response(200, failed_then_retried))
     with patch.object(client._http, "post", new=mock_post):
-        result = await client.retry_job("abc123")
+        result = await client.retry_job("job-abc")
     assert isinstance(result, JobView)
-    assert "/api/v1/jobs/abc123/retry" in mock_post.call_args.args[0]
+    assert "/api/v1/jobs/job-abc/retry" in mock_post.call_args.args[0]
     assert result.status == "STOP_SEEDING"
 
 

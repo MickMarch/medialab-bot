@@ -15,7 +15,7 @@ from medialab_bot.schemas.transfers import MergedTransfersResponse
 # medialab-contracts; the bot does not re-test their parsing here.
 
 _JOB = {
-    "id": 1,
+    "id": "job-abc",
     "torrent_hash": "abc123",
     "release_name": "Dune.2021.1080p",
     "media_type": "movie",
@@ -134,6 +134,12 @@ def test_job_view_parses_with_media_type_enum():
     assert job.media_type is MediaType.MOVIE
     assert job.status == "DONE"
     assert job.attempts == 0
+
+
+def test_job_view_allows_null_torrent_hash():
+    # A .torrent-URL job may not have its hash stamped yet.
+    job = JobView(**{**_JOB, "torrent_hash": None})
+    assert job.torrent_hash is None
 
 
 def test_jobs_response_parses():

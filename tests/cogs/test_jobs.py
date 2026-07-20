@@ -9,10 +9,10 @@ from medialab_bot.views.jobs import JobRetryView
 from tests.helpers import make_interaction
 
 
-def _make_job(status: str = "DOWNLOADING", torrent_hash: str = "abc123", **kwargs) -> JobView:
+def _make_job(status: str = "DOWNLOADING", job_id: str = "job-abc", **kwargs) -> JobView:
     defaults = {
-        "id": 1,
-        "torrent_hash": torrent_hash,
+        "id": job_id,
+        "torrent_hash": "abc123",
         "release_name": "Dune.2021.1080p",
         "media_type": MediaType.MOVIE,
         "tmdb_id": 438631,
@@ -128,11 +128,11 @@ async def test_retry_view_calls_client_retry(mock_client):
     mock_client.retry_job = AsyncMock(return_value=_make_job(status="STOP_SEEDING"))
     view = JobRetryView(mock_client, [_make_job(status="FAILED")])
     interaction = make_interaction()
-    interaction.configure_mock(data={"values": ["abc123"]})
+    interaction.configure_mock(data={"values": ["job-abc"]})
 
     await view.select.callback(interaction)
 
-    mock_client.retry_job.assert_awaited_once_with("abc123")
+    mock_client.retry_job.assert_awaited_once_with("job-abc")
     interaction.followup.send.assert_awaited_once()
 
 

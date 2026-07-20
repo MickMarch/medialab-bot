@@ -28,14 +28,15 @@ class _TorrentsMixin(_BaseClient):
         return self._parse(TorrentSearchResponse, data)
 
     async def download(
-        self, magnet_uri: str, media_type: MediaType, tmdb_id: int
+        self, source_url: str, media_type: MediaType, tmdb_id: int
     ) -> DownloadResponse | None:
-        # The gateway resolves placement and fans out; it requires media_type +
-        # tmdb_id (no title guessing). Save-path config is gone from the bot.
+        # source_url is whatever the picked result carried - a magnet or an http
+        # .torrent URL. The gateway resolves placement and fans out; it requires
+        # media_type + tmdb_id (no title guessing).
         data = await self._post(
             "/api/v1/download",
             json={
-                "magnet_uri": magnet_uri,
+                "source_url": source_url,
                 "media_type": media_type.value,
                 "tmdb_id": tmdb_id,
             },

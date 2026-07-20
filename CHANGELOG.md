@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Download submission sends `source_url` (was `magnet_uri`) to the gateway - the
+  picked result's URL, now either a magnet or an http `.torrent` file URL. The
+  torrent picker accepts a `.torrent` link instead of rejecting anything
+  non-magnet, so results from plugins that return `.torrent` links (e.g.
+  torlock) are downloadable.
+- Jobs are addressed by the gateway's surrogate `job_id`, not the torrent hash:
+  the retry picker keys on `job.id`, `retry_job` calls `/jobs/{id}/retry`, and
+  the download-confirmation message shows the job id. `JobView.id` is now a
+  string and `JobView.torrent_hash` is nullable (a `.torrent`-URL job may not
+  have its hash stamped yet).
+
 ## [2.1.1] - 2026-07-17
 
 ### Fixed

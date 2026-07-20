@@ -106,7 +106,9 @@ class TorrentSelectMenu(discord.ui.View):
             )
             return
 
-        if not result.file_url.startswith("magnet:"):
+        # A result carries either a magnet or an http .torrent URL; the gateway
+        # (and torrent-downloader) handle both. Reject only an empty/garbage link.
+        if not (result.file_url.startswith("magnet:") or result.file_url.startswith("http")):
             await interaction.response.send_message(
                 "Invalid torrent link. Please try a different result.",
                 ephemeral=True,
@@ -124,6 +126,6 @@ class TorrentSelectMenu(discord.ui.View):
 
         await interaction.followup.send(
             f"Download started: **{result.file_name}**\n"
-            f"Track it with `/jobs` (hash `{response.job.torrent_hash}`).",
+            f"Track it with `/jobs` (job `{response.job.id}`).",
             ephemeral=True,
         )

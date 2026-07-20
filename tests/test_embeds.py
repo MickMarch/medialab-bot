@@ -31,7 +31,7 @@ def _transfers_response(transfers: list[TransferInfo]) -> MergedTransfersRespons
 
 def _make_job(**kwargs) -> JobView:
     defaults = {
-        "id": 1,
+        "id": "job-abc",
         "torrent_hash": "abc123",
         "release_name": "Dune.2021.1080p",
         "media_type": MediaType.MOVIE,
@@ -69,7 +69,9 @@ def test_transfers_embed_field_contains_state():
 
 
 def test_jobs_embed_one_field_per_job():
-    response = JobsResponse(status="success", jobs=[_make_job(), _make_job(torrent_hash="def")])
+    response = JobsResponse(
+        status="success", jobs=[_make_job(), _make_job(id="job-def", torrent_hash="def")]
+    )
     assert len(jobs_embed(response).fields) == 2
 
 

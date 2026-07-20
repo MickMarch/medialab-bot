@@ -13,7 +13,7 @@ from medialab_bot.views.torrent import TorrentSelectMenu
 from tests.helpers import make_interaction
 
 _JOB = JobView(
-    id=1,
+    id="job-abc",
     torrent_hash="abc123",
     release_name="Dune.2021.1080p",
     media_type=MediaType.MOVIE,
