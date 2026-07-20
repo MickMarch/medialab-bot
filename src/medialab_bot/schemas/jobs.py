@@ -7,8 +7,8 @@ from pydantic import BaseModel
 class JobView(BaseModel):
     """A single pipeline job as the gateway exposes it."""
 
-    id: int
-    torrent_hash: str
+    id: str
+    torrent_hash: str | None = None
     release_name: str
     media_type: MediaType
     tmdb_id: int

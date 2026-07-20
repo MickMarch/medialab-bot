@@ -8,8 +8,8 @@ class _JobsMixin(_BaseClient):
         data = await self._get("/api/v1/jobs", params=params)
         return self._parse(JobsResponse, data)
 
-    async def retry_job(self, torrent_hash: str) -> JobView | None:
+    async def retry_job(self, job_id: str) -> JobView | None:
         # The gateway re-enters the worker from the last good state and returns
         # the updated job (not wrapped in a status envelope).
-        data = await self._post(f"/api/v1/jobs/{torrent_hash}/retry")
+        data = await self._post(f"/api/v1/jobs/{job_id}/retry")
         return self._parse(JobView, data)

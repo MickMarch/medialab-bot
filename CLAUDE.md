@@ -66,8 +66,9 @@ medialab-orchestrator (gateway) --> torrent-downloader (qBittorrent + TMDB)
    torrent picker** (the gateway requires both at download; it does no title
    guessing).
 3. User picks a torrent - bot calls `POST /api/v1/download` with
-   `{magnet_uri, media_type, tmdb_id}`. The gateway creates a pipeline job and
-   returns it; the bot shows the job hash so the user can `/jobs` it.
+   `{source_url, media_type, tmdb_id}`. `source_url` is whatever the result
+   carried - a magnet or an http `.torrent` URL. The gateway creates a pipeline
+   job and returns it; the bot shows the job id so the user can `/jobs` it.
 4. State lives entirely in Discord message components - no server-side session.
 
 TMDB classifies titles `movie`/`tv`; the suite uses `movie`/`show`
@@ -89,10 +90,10 @@ Base URL from `ORCHESTRATOR_URL`. All requests (except health) send
 | `/api/v1/search/tmdb` | GET | `/search` - param: `query` |
 | `/api/v1/search/tmdb/{movie,show}/{tmdb_id}` | GET | Detail after a result pick |
 | `/api/v1/search/torrents` | GET | Torrent picker - params: `query`, `media_type` (required); shows add optional `season`/`episode` |
-| `/api/v1/download` | POST | Submit `{magnet_uri, media_type, tmdb_id}`; returns a job (202) |
+| `/api/v1/download` | POST | Submit `{source_url, media_type, tmdb_id}` (magnet or .torrent URL); returns a job (202) |
 | `/api/v1/transfers` | GET | `/transfers` - merged live transfers + job rows |
 | `/api/v1/jobs` | GET | `/jobs` - pipeline lifecycle; optional `status` filter |
-| `/api/v1/jobs/{hash}/retry` | POST | Retry a failed job from its last good state |
+| `/api/v1/jobs/{id}/retry` | POST | Retry a failed job (by job id) from its last good state |
 | `/api/v1/storage` | GET | `/storage` - no path param |
 
 Error shape: `{"status": "error", "code": "<ErrorCode>", "detail": "..."}`.
