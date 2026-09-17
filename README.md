@@ -1,90 +1,62 @@
 # medialab-bot
 
-Discord bot providing slash command UI for the [torrent-downloader](https://github.com/MickMarch/torrent-downloader) service.
-
-Part of the `medialab` workspace. Thin UI layer - no business logic lives here.
-
-## Architecture
+Discord slash-command UI for the [medialab](https://github.com/MickMarch/medialab)
+suite. A thin UI layer: it talks to exactly one service, the
+medialab-orchestrator gateway, and holds no business logic or server-side
+state.
 
 ```
 Discord user
     | slash command
 medialab-bot (discord.py)
-    | HTTP + X-API-Key header
-torrent-downloader (FastAPI)
-    |
-qBittorrent + TMDB
+    | HTTP + X-API-Key
+medialab-orchestrator (gateway) --> torrent-downloader, medialab-jellyfin
 ```
 
 ## Setup
 
-### Prerequisites
-
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/)
-- A running [torrent-downloader](https://github.com/MickMarch/torrent-downloader) instance
-- A Discord bot token ([Discord Developer Portal](https://discord.com/developers/applications))
-
-### Installation
+Prerequisites: Python 3.12+, [uv](https://docs.astral.sh/uv/), a running
+orchestrator, and a bot token from the
+[Discord Developer Portal](https://discord.com/developers/applications).
 
 ```bash
 uv sync --dev
-```
-
-### Configuration
-
-Copy `.env.example` to `.env` and populate all values:
-
-```bash
-cp .env.example .env
-```
-
-| Variable | Required | Description |
-|---|---|---|
-| `DISCORD_TOKEN` | Yes | Discord bot token |
-| `DISCORD_GUILD_ID` | Yes | Guild (server) ID for slash command registration |
-| `TORRENT_DOWNLOADER_URL` | Yes | Base URL of torrent-downloader (e.g. `http://127.0.0.1:8000`) |
-| `TORRENT_DOWNLOADER_API_KEY` | Yes | `X-API-Key` header value for torrent-downloader |
-| `TORRENT_SAVE_PATH` | Yes | Host path where torrents are saved (sent as the download destination) |
-| `TMP_DOCKER_SAVE_PATH` | Yes | Path to query for `/storage` disk usage. The bot and torrent-downloader run in separate containers and do not share a filesystem, so this must be the mount path visible to the torrent-downloader container rather than the host path. When both services share the same filesystem this can be set to the same value as `TORRENT_SAVE_PATH`. |
-| `LOG_LEVEL` | No | Log level (default: `INFO`) |
-
-### Discord Bot Permissions
-
-When inviting the bot, use OAuth2 scopes `bot` + `applications.commands` with permissions: `Send Messages`, `Embed Links`.
-
-### Running
-
-```bash
+cp .env.example .env     # then fill in the values
 uv run medialab-bot
 ```
 
+`.env.example` documents every variable. The bot needs the token, the guild
+id to register commands against, and the orchestrator URL + key.
+
+Invite the bot with OAuth2 scopes `bot` + `applications.commands` and
+permissions `Send Messages`, `Embed Links`.
+
+The bot runs as a container from the workspace `docker-compose.yml`; see the
+[workspace README](../README.md).
+
 ## Commands
 
-| Command | Status | Description |
+| Command | Description | Gateway routes used |
 |---|---|---|
-| `/search <query>` | Available | Search TMDB, pick a title via select menu |
-| `/torrent <query>` | Planned | Skip TMDB, search torrents directly |
-| `/download` | Planned | Confirm and submit selected magnet URI |
-| `/transfers` | Planned | List active downloads |
-| `/storage` | Planned | Disk usage |
-| `/trending <type>` | Blocked on torrent-downloader v1.1 | Trending movies or shows |
-| `/similar <title> <type>` | Blocked on torrent-downloader v1.1 | Similar titles |
+| `/search <query>` | TMDB search, then title -> (season/episode scope for shows) -> torrent pick -> download. The only download path. | `GET /search/tmdb`, `GET /search/tmdb/{movie\|show}/{id}`, `GET /search/torrents`, `POST /download` |
+| `/transfers` | Live transfers merged with pipeline job rows. | `GET /transfers` |
+| `/jobs [status]` | Pipeline lifecycle view with a retry control for failed jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
+| `/storage` | Disk usage. | `GET /storage` |
+
+All routes are under `/api/v1` on the orchestrator. Rate-limit `429`s carry
+`Retry-After` and are surfaced to the user. Startup logs the gateway's
+aggregated health (`GET /health`).
+
+Deferred: `/trending` and `/similar` (await TMDB passthroughs on the gateway);
+`/torrent` raw search without TMDB (tracked as
+[MickMarch/medialab#26](https://github.com/MickMarch/medialab/issues/26)).
 
 ## Development
 
 ```bash
-# Run tests
 uv run pytest
-
-# Run single test
-uv run pytest tests/test_client.py::test_health_returns_response_on_200
+uv run ruff check . && uv run ruff format --check . && uv run mypy src
 ```
 
-See [CLAUDE.md](CLAUDE.md) for architecture decisions, module layout, and development workflow.
-
-## Versioning
-
-Version derived from git tags via `hatch-vcs`. Never hardcoded.
-
-Release process: merge to main → tag (`git tag -a vX.Y.Z -m "vX.Y.Z"`) → push tag → create GitHub Release → update `CHANGELOG.md`.
+Standards, workflow and release process: [workspace CLAUDE.md](../CLAUDE.md).
+Code-local notes: [CLAUDE.md](CLAUDE.md).
