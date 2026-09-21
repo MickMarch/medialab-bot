@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-09-21
+
 ### Fixed
 
 - Discord login retries connection and DNS failures with capped exponential
