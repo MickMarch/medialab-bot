@@ -5,6 +5,7 @@ import pytest
 from medialab_contracts import MediaType
 
 from medialab_bot.client import OrchestratorClient
+from medialab_bot.schemas.actions import ActionResponse
 from medialab_bot.schemas.downloads import DownloadResponse
 from medialab_bot.schemas.jobs import JobsResponse, JobView
 from medialab_bot.schemas.system import DiskUsageResponse, HealthResponse
@@ -277,3 +278,24 @@ async def test_retry_job_calls_correct_path_and_returns_job(client):
 async def test_retry_job_returns_none_on_error(client):
     with patch.object(client._http, "post", new=AsyncMock(return_value=_mock_response(404))):
         assert await client.retry_job("nope") is None
+
+
+# --- stop-seeding ---
+
+
+@pytest.mark.asyncio
+async def test_stop_seeding_posts_and_parses(client):
+    payload = {"status": "success", "message": "All seeding transfers stopped."}
+    with patch.object(
+        client._http, "post", new=AsyncMock(return_value=_mock_response(202, payload))
+    ) as mock_post:
+        result = await client.stop_seeding()
+    assert mock_post.call_args.args[0].endswith("/transfers/stop-seeding")
+    assert isinstance(result, ActionResponse)
+    assert result.message == "All seeding transfers stopped."
+
+
+@pytest.mark.asyncio
+async def test_stop_seeding_returns_none_on_error(client):
+    with patch.object(client._http, "post", new=AsyncMock(return_value=_mock_response(502))):
+        assert await client.stop_seeding() is None

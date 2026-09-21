@@ -1,8 +1,11 @@
 from medialab_contracts import API_PREFIX
 
 from medialab_bot.client._base import _BaseClient
+from medialab_bot.schemas.actions import ActionResponse
 from medialab_bot.schemas.system import DiskUsageResponse, HealthResponse
 from medialab_bot.schemas.transfers import MergedTransfersResponse
+
+_ACCEPTED = 202
 
 
 class _StatusMixin(_BaseClient):
@@ -18,3 +21,9 @@ class _StatusMixin(_BaseClient):
         # The gateway resolves the storage path itself; no path arg from the bot.
         data = await self._get(f"{API_PREFIX}/storage")
         return self._parse(DiskUsageResponse, data)
+
+    async def stop_seeding(self) -> ActionResponse | None:
+        # Pauses every seeding (completed) torrent; never touches an in-progress
+        # download. The gateway answers 202 with the downloader's envelope.
+        data = await self._post(f"{API_PREFIX}/transfers/stop-seeding", expected_status=_ACCEPTED)
+        return self._parse(ActionResponse, data)
