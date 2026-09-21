@@ -2,6 +2,7 @@ import logging
 from typing import Self, TypeVar
 
 import httpx
+from medialab_contracts import API_KEY_HEADER
 from pydantic import BaseModel, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ class _BaseClient:
     ) -> None:
         self._http = httpx.AsyncClient(
             base_url=base_url,
-            headers={"X-API-Key": api_key},
+            headers={API_KEY_HEADER: api_key},
         )
         self._torrent_search_timeout = torrent_search_timeout
 

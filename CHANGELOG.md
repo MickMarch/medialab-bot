@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Every gateway path is built from medialab-contracts v0.4.0 `API_PREFIX`, the
+  key header from `API_KEY_HEADER`, and TMDB detail routes from
+  `MediaType.value` instead of `/movie/` and `/show/` literals. Wire values
+  unchanged.
+
+### Changed
+
 - CI calls the workspace's shared reusable workflow (`MickMarch/medialab`
   `python-ci.yml`) instead of carrying its own copy of the quality gate.
 - Releases publish automatically from the CHANGELOG section matching the
