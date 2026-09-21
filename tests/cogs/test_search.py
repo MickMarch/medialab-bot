@@ -260,9 +260,15 @@ async def test_torrent_select_options_sorted_descending_by_seeders(mock_client, 
         ],
     }
     view = _torrent_view(groups, mock_client, mock_config)
-    options = view.select.options
-    seeder_order = [int(o.description.split()[0]) for o in options]
-    assert seeder_order == sorted(seeder_order, reverse=True)
+    indexed = [view._indexed[o.value] for o in view.select.options]
+    seeders = [r.seeders for r in indexed]
+    assert seeders == sorted(seeders, reverse=True)
+
+
+def test_torrent_select_option_description_shows_seeders_and_size(mock_client, mock_config):
+    groups = {"1080p": [_make_torrent_result(seeders=123)]}  # file_size 8_000_000_000
+    view = _torrent_view(groups, mock_client, mock_config)
+    assert view.select.options[0].description == "123 seeders · 8.0 GB"
 
 
 @pytest.mark.asyncio

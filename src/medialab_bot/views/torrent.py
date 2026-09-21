@@ -3,6 +3,7 @@ from medialab_contracts import MediaType
 
 from medialab_bot.client import OrchestratorClient
 from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+from medialab_bot.format import format_size
 from medialab_bot.schemas.torrents import TorrentResult
 
 
@@ -58,6 +59,14 @@ async def run_torrent_search(
     )
 
 
+_DESCRIPTION_SEPARATOR = " · "
+
+
+def option_description(result: TorrentResult) -> str:
+    """The two facts a user weighs when picking: seeders and size."""
+    return f"{result.seeders} seeders{_DESCRIPTION_SEPARATOR}{format_size(result.file_size)}"
+
+
 class TorrentSelectMenu(discord.ui.View):
     def __init__(
         self,
@@ -83,7 +92,7 @@ class TorrentSelectMenu(discord.ui.View):
                 label = f"{resolution} - {result.file_name}"[
                     :DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
                 ]
-                description = f"{result.seeders} seeders"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
+                description = option_description(result)[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
                 options.append(
                     discord.SelectOption(label=label, value=key, description=description)
                 )
