@@ -1,4 +1,4 @@
-from medialab_contracts import MediaType
+from medialab_contracts import API_PREFIX, MediaType
 
 from medialab_bot.client._base import _BaseClient
 from medialab_bot.schemas.downloads import DownloadResponse
@@ -21,7 +21,7 @@ class _TorrentsMixin(_BaseClient):
         if episode is not None:
             params["episode"] = episode
         data = await self._get(
-            "/api/v1/search/torrents",
+            f"{API_PREFIX}/search/torrents",
             params=params,
             timeout=self._torrent_search_timeout,
         )
@@ -34,7 +34,7 @@ class _TorrentsMixin(_BaseClient):
         # .torrent URL. The gateway resolves placement and fans out; it requires
         # media_type + tmdb_id (no title guessing).
         data = await self._post(
-            "/api/v1/download",
+            f"{API_PREFIX}/download",
             json={
                 "source_url": source_url,
                 "media_type": media_type.value,
