@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Discord login retries connection and DNS failures with capped exponential
+  backoff (`LOGIN_MAX_ATTEMPTS`, `LOGIN_BACKOFF_BASE_SECONDS`,
+  `LOGIN_BACKOFF_MAX_SECONDS`) instead of exiting and crash-looping the
+  container. A bad token still fails immediately. Shutdown is now logged.
+
 ## [2.3.0] - 2026-09-21
 
 ### Changed

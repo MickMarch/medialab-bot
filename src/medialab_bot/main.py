@@ -9,6 +9,7 @@ from medialab_bot.cogs.jobs import JobsCog
 from medialab_bot.cogs.search import SearchCog
 from medialab_bot.cogs.status import StatusCog
 from medialab_bot.config import AppConfig
+from medialab_bot.startup import RetryPolicy, start_with_retry
 
 
 async def _run(config: AppConfig) -> None:
@@ -56,7 +57,15 @@ async def _run(config: AppConfig) -> None:
         async def on_ready() -> None:
             logger.info("Logged in as %s", bot.user)
 
-        await bot.start(config.discord_token)
+        policy = RetryPolicy(
+            max_attempts=config.login_max_attempts,
+            base_delay_seconds=config.login_backoff_base_seconds,
+            max_delay_seconds=config.login_backoff_max_seconds,
+        )
+        try:
+            await start_with_retry(lambda: bot.start(config.discord_token), policy)
+        finally:
+            logger.info("bot shutting down")
 
 
 def main() -> None:
