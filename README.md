@@ -42,6 +42,7 @@ The bot runs as a container from the workspace `docker-compose.yml`; see the
 | `/transfers` | Live transfers merged with pipeline job rows. | `GET /transfers` |
 | `/jobs [status]` | Pipeline lifecycle view with a retry control for failed jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
 | `/storage` | Disk usage. | `GET /storage` |
+| `/stop-seeding` | Pause every completed (seeding) torrent; downloads untouched. Ephemeral. | `POST /transfers/stop-seeding` |
 
 All routes are under `/api/v1` on the orchestrator. Rate-limit `429`s carry
 `Retry-After` and are surfaced to the user. Startup logs the gateway's

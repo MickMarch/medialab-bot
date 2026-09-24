@@ -4,6 +4,7 @@ import pytest
 from medialab_contracts import TransferInfo
 
 from medialab_bot.cogs.status import StatusCog
+from medialab_bot.schemas.actions import ActionResponse
 from medialab_bot.schemas.system import DiskUsageResponse
 from medialab_bot.schemas.transfers import MergedTransfersResponse
 from tests.helpers import make_interaction
@@ -129,3 +130,48 @@ async def test_storage_sends_ephemeral_on_client_none(mock_client):
 
     interaction.followup.send.assert_awaited_once()
     assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+
+
+# --- /stop-seeding ---
+
+
+@pytest.mark.asyncio
+async def test_stop_seeding_defers_before_api_call(mock_client):
+    mock_client.stop_seeding = AsyncMock(
+        return_value=ActionResponse(status="success", message="All seeding transfers stopped.")
+    )
+    cog = StatusCog(mock_client)
+    interaction = make_interaction()
+
+    await cog.stop_seeding.callback(cog, interaction)
+
+    interaction.response.defer.assert_awaited_once_with(ephemeral=True)
+    mock_client.stop_seeding.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_stop_seeding_reports_the_gateway_message(mock_client):
+    mock_client.stop_seeding = AsyncMock(
+        return_value=ActionResponse(status="success", message="All seeding transfers stopped.")
+    )
+    cog = StatusCog(mock_client)
+    interaction = make_interaction()
+
+    await cog.stop_seeding.callback(cog, interaction)
+
+    sent = interaction.followup.send.await_args
+    assert "All seeding transfers stopped." in sent.args[0]
+    assert sent.kwargs["ephemeral"] is True
+
+
+@pytest.mark.asyncio
+async def test_stop_seeding_sends_failure_line_on_client_none(mock_client):
+    mock_client.stop_seeding = AsyncMock(return_value=None)
+    cog = StatusCog(mock_client)
+    interaction = make_interaction()
+
+    await cog.stop_seeding.callback(cog, interaction)
+
+    sent = interaction.followup.send.await_args
+    assert "Failed" in sent.args[0]
+    assert sent.kwargs["ephemeral"] is True

@@ -35,3 +35,17 @@ class StatusCog(commands.Cog):
             return
 
         await interaction.followup.send(embed=storage_embed(response), ephemeral=True)
+
+    @app_commands.command(
+        name="stop-seeding",
+        description="Pause every completed (seeding) torrent; downloads are untouched",
+    )
+    async def stop_seeding(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        response = await self._client.stop_seeding()
+
+        if response is None:
+            await interaction.followup.send("Failed to stop seeding.", ephemeral=True)
+            return
+
+        await interaction.followup.send(response.message, ephemeral=True)

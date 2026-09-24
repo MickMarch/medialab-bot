@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The torrent picker shows each result's size next to its seeder count
   (`123 seeders · 8.0 GB`, decimal units).
+- `/stop-seeding`: pauses every completed (seeding) torrent through the
+  gateway; in-progress downloads are never touched. Ephemeral reply.
 
 ## [2.3.1] - 2026-09-21
 
