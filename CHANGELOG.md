@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The torrent picker shows each result's size next to its seeder count
+  (`123 seeders · 8.0 GB`, decimal units).
+
 ## [2.3.1] - 2026-09-21
 
 ### Fixed
