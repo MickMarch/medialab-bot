@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `/transfers` and `/jobs` no longer fail silently (Discord rejects an embed
+  with more than 25 fields, leaving the command "thinking"): they show the
+  first 25 and a footer saying how many more exist.
+
 ## [2.6.0] - 2026-09-25
 
 ### Added
