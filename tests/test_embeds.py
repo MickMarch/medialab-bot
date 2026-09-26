@@ -114,3 +114,26 @@ def test_storage_embed_contains_used_percent():
     embed = storage_embed(response)
     combined = " ".join(f.value or "" for f in embed.fields) + (embed.description or "")
     assert "40" in combined
+
+
+def test_transfers_embed_caps_fields_at_discord_limit_and_says_how_many_more():
+    from medialab_bot.constants import DISCORD_EMBED_MAX_FIELDS
+
+    transfers = [_make_transfer(name=f"t{i}", hash=f"h{i}") for i in range(30)]
+    embed = transfers_embed(_transfers_response(transfers))
+    assert len(embed.fields) == DISCORD_EMBED_MAX_FIELDS
+    assert "5 more" in (embed.footer.text or "")
+
+
+def test_transfers_embed_has_no_footer_when_within_limit():
+    embed = transfers_embed(_transfers_response([_make_transfer()]))
+    assert embed.footer.text is None
+
+
+def test_jobs_embed_caps_fields_at_discord_limit():
+    from medialab_bot.constants import DISCORD_EMBED_MAX_FIELDS
+
+    jobs = [_make_job(id=f"j{i}", torrent_hash=f"h{i}") for i in range(27)]
+    embed = jobs_embed(JobsResponse(status="success", jobs=jobs))
+    assert len(embed.fields) == DISCORD_EMBED_MAX_FIELDS
+    assert "2 more" in (embed.footer.text or "")
