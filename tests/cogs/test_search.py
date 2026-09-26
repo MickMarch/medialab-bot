@@ -46,6 +46,8 @@ def _make_torrent_result(
     filename: str = "Dune.2021.1080p.mkv",
     magnet: str = "magnet:?xt=urn:btih:abc",
     seeders: int = 100,
+    languages: list[str] | None = None,
+    multi_audio: bool = False,
 ) -> TorrentResult:
     return TorrentResult(
         file_name=filename,
@@ -53,6 +55,8 @@ def _make_torrent_result(
         seeders=seeders,
         leechers=5,
         file_size=8_000_000_000,
+        languages=languages or [],
+        multi_audio=multi_audio,
     )
 
 
@@ -402,3 +406,21 @@ async def test_tmdb_select_rejects_unmappable_media_type(mock_client, mock_confi
 
     interaction.response.send_message.assert_awaited_once()
     mock_client.search_torrents.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("languages", "multi", "suffix"),
+    [
+        ([], False, ""),
+        (["French"], False, " · FRENCH"),
+        (["Italian", "English"], False, " · ITALIAN/ENGLISH"),
+        (["French"], True, " · FRENCH · MULTi"),
+        ([], True, " · MULTi"),
+    ],
+)
+def test_torrent_select_option_description_shows_language_tags(
+    mock_client, mock_config, languages, multi, suffix
+):
+    groups = {"1080p": [_make_torrent_result(seeders=7, languages=languages, multi_audio=multi)]}
+    view = _torrent_view(groups, mock_client, mock_config)
+    assert view.select.options[0].description == "7 seeders · 8.0 GB" + suffix

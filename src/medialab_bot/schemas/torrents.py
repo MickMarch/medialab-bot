@@ -9,6 +9,8 @@ class TorrentResult(BaseModel):
     seeders: int = Field(alias="nbSeeders", ge=0)
     leechers: int = Field(alias="nbLeechers", ge=0)
     file_size: int = Field(alias="fileSize")
+    languages: list[str] = Field(default_factory=list)
+    multi_audio: bool = Field(alias="multiAudio", default=False)
 
 
 class TorrentSearchResponse(BaseModel):

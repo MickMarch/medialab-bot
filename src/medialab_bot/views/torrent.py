@@ -62,9 +62,18 @@ async def run_torrent_search(
 _DESCRIPTION_SEPARATOR = " · "
 
 
+_MULTI_AUDIO_TAG = "MULTi"
+_LANGUAGE_JOINER = "/"
+
+
 def option_description(result: TorrentResult) -> str:
-    """The two facts a user weighs when picking: seeders and size."""
-    return f"{result.seeders} seeders{_DESCRIPTION_SEPARATOR}{format_size(result.file_size)}"
+    """What a user weighs when picking: seeders, size, and any audio-language tag."""
+    parts = [f"{result.seeders} seeders", format_size(result.file_size)]
+    if result.languages:
+        parts.append(_LANGUAGE_JOINER.join(lang.upper() for lang in result.languages))
+    if result.multi_audio:
+        parts.append(_MULTI_AUDIO_TAG)
+    return _DESCRIPTION_SEPARATOR.join(parts)
 
 
 class TorrentSelectMenu(discord.ui.View):
