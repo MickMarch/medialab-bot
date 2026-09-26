@@ -299,3 +299,43 @@ async def test_stop_seeding_posts_and_parses(client):
 async def test_stop_seeding_returns_none_on_error(client):
     with patch.object(client._http, "post", new=AsyncMock(return_value=_mock_response(502))):
         assert await client.stop_seeding() is None
+
+
+# --- deletion ---
+
+
+@pytest.mark.asyncio
+async def test_deletion_plan_gets_and_parses(client):
+    payload = {
+        "status": "success",
+        "job_id": "j1",
+        "torrent": True,
+        "download_folder": "/media/Movies/X",
+        "placed_paths": [],
+        "scan_path": None,
+        "refused": None,
+    }
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ) as mock_get:
+        plan = await client.deletion_plan("j1")
+    assert mock_get.call_args.args[0].endswith("/jobs/j1/deletion-plan")
+    assert plan is not None and plan.torrent is True
+
+
+@pytest.mark.asyncio
+async def test_delete_job_deletes_and_parses(client):
+    with patch.object(
+        client._http,
+        "delete",
+        new=AsyncMock(return_value=_mock_response(200, {**_JOB, "status": "DELETED"})),
+    ) as mock_delete:
+        job = await client.delete_job("job-abc")
+    assert mock_delete.call_args.args[0].endswith("/jobs/job-abc")
+    assert job is not None and job.status == "DELETED"
+
+
+@pytest.mark.asyncio
+async def test_delete_job_returns_none_on_409(client):
+    with patch.object(client._http, "delete", new=AsyncMock(return_value=_mock_response(409))):
+        assert await client.delete_job("job-abc") is None

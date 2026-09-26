@@ -65,6 +65,23 @@ class _BaseClient:
             logger.error("POST %s returned non-JSON response", path)
             return None
 
+    async def _delete(self, path: str, timeout: float | None = None) -> dict | None:
+        try:
+            response = await self._http.delete(path, timeout=timeout)
+            if response.status_code != httpx.codes.OK:
+                logger.warning("DELETE %s returned %d", path, response.status_code)
+                return None
+            return response.json()
+        except httpx.TimeoutException:
+            logger.warning("DELETE %s timed out", path)
+            return None
+        except (httpx.ConnectError, httpx.HTTPError):
+            logger.warning("DELETE %s failed with network error", path)
+            return None
+        except ValueError:
+            logger.error("DELETE %s returned non-JSON response", path)
+            return None
+
     @staticmethod
     def _parse(model: type[ModelT], data: dict | None) -> ModelT | None:
         if data is None:
