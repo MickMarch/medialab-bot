@@ -15,7 +15,7 @@ class DeleteCog(commands.Cog):
 
     @app_commands.command(
         name="delete",
-        description="Undo a download: remove it from qBittorrent, disk and Jellyfin",
+        description="Undo a download: pick it, review the exact paths, confirm with a red button",
     )
     async def delete(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)
@@ -33,7 +33,8 @@ class DeleteCog(commands.Cog):
             return
 
         await interaction.followup.send(
-            "Pick the download to delete. You will see exactly what goes before confirming.",
+            "Three steps: pick a download, review exactly what would be removed, then press "
+            "the red **Delete** button. Nothing is touched before that button.",
             view=DeleteSelectView(self._client, candidates),
             ephemeral=True,
         )

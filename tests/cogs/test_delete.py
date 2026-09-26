@@ -6,18 +6,31 @@ from medialab_contracts import MediaType
 from medialab_bot.cogs.delete import DeleteCog
 from medialab_bot.schemas.deletion import DeletionPlan
 from medialab_bot.schemas.jobs import JobsResponse, JobView
-from medialab_bot.views.delete import DeleteConfirmView, DeleteSelectView, render_plan
+from medialab_bot.views.delete import (
+    DeleteConfirmView,
+    DeleteSelectView,
+    option_description,
+    option_label,
+    render_plan,
+)
 from tests.helpers import make_interaction
 
 
-def _job(status: str = "DONE", job_id: str = "job-1") -> JobView:
+def _job(
+    status: str = "DONE",
+    job_id: str = "job-1",
+    release_name: str = "Dune.2021.1080p",
+    resolved_title: str | None = "Dune",
+    resolved_year: int | None = 2021,
+) -> JobView:
     return JobView(
         id=job_id,
         torrent_hash="abc",
-        release_name="Dune.2021.1080p",
+        release_name=release_name,
         media_type=MediaType.MOVIE,
         tmdb_id=1,
-        resolved_title="Dune",
+        resolved_title=resolved_title,
+        resolved_year=resolved_year,
         status=status,
         created_at="2026-06-26T00:00:00+00:00",
         updated_at="2026-06-26T00:00:00+00:00",
@@ -122,3 +135,20 @@ def test_render_plan_caps_listed_paths(n):
 def test_confirm_view_times_out_after_a_minute():
     view = DeleteConfirmView(MagicMock(), "job-1")
     assert view.timeout == 60.0
+
+
+def test_option_label_is_title_and_year():
+    assert option_label(_job()) == "Dune (2021)"
+    assert option_label(_job(resolved_title=None, resolved_year=None)) == "Dune.2021.1080p"
+
+
+def test_option_description_tells_two_copies_apart():
+    pt = option_description(_job(release_name="Dune.2021.1080p.PORTUGUESE.DUAL-GRP"))
+    en = option_description(_job(release_name="Dune.2021.2160p.ENGLISH-GRP"))
+    assert pt != en
+    assert "PORTUGUESE" in pt and "DONE" in pt and "2026-06-26" in pt
+    assert len(option_description(_job(release_name="x" * 300))) <= 100
+
+
+def test_plan_states_nothing_happened_yet():
+    assert render_plan(_plan()).startswith("Nothing has happened yet")
