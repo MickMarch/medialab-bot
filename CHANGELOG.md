@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-09-25
+
 ### Fixed
 
 - `/transfers` and `/jobs` no longer fail silently (Discord rejects an embed
