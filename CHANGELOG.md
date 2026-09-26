@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-09-26
+
 ### Added
 
 - `/delete`: pick a download, see exactly what will be removed (torrent,
