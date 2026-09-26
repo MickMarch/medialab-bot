@@ -21,6 +21,8 @@ class JobView(BaseModel):
     attempts: int = 0
     remediations: int = 0
     seeding_removed_at: str | None = None
+    placed_paths: list[str] = []
+    deleted_at: str | None = None
     created_at: str
     updated_at: str
 

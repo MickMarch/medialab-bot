@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `/delete`: pick a download, see exactly what will be removed (torrent,
+  download folder, placed library files, Jellyfin path), confirm with a red
+  button valid for a minute. Refused plans show the reason and no button.
+
 ## [2.6.1] - 2026-09-25
 
 ### Fixed
