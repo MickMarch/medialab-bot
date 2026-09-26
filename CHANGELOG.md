@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-09-25
+
 ### Added
 
 - The torrent picker shows the audio language tag parsed by the downloader
