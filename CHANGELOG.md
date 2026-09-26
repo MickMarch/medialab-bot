@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `/jobs` offers the retry control for `NEEDS_ATTENTION` jobs as well as
+  `FAILED`; startup logs the gateway's `needs_attention` count.
+
 ## [2.4.0] - 2026-09-24
 
 ### Added

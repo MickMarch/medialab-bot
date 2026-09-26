@@ -6,7 +6,7 @@ from medialab_bot.client import OrchestratorClient
 from medialab_bot.embeds import jobs_embed
 from medialab_bot.views.jobs import JobRetryView
 
-_FAILED_STATUS = "FAILED"
+_RETRYABLE_STATUSES = frozenset({"FAILED", "NEEDS_ATTENTION"})
 
 
 class JobsCog(commands.Cog):
@@ -27,10 +27,10 @@ class JobsCog(commands.Cog):
             await interaction.followup.send("No jobs found.", ephemeral=True)
             return
 
-        # Offer a retry control for any failed job in the result set. discord.py
+        # Offer a retry control for any failed or flagged job in the result set. discord.py
         # rejects view=None (it expects a View or the param omitted entirely), so
         # only pass view when there is one.
-        failed = [j for j in response.jobs if j.status == _FAILED_STATUS]
+        failed = [j for j in response.jobs if j.status in _RETRYABLE_STATUSES]
         kwargs: dict = {"embed": jobs_embed(response), "ephemeral": True}
         if failed:
             kwargs["view"] = JobRetryView(self._client, failed)

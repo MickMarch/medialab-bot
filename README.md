@@ -40,7 +40,7 @@ The bot runs as a container from the workspace `docker-compose.yml`; see the
 |---|---|---|
 | `/search <query>` | TMDB search, then title -> (season/episode scope for shows) -> torrent pick -> download. The only download path. | `GET /search/tmdb`, `GET /search/tmdb/{movie\|show}/{id}`, `GET /search/torrents`, `POST /download` |
 | `/transfers` | Live transfers merged with pipeline job rows. | `GET /transfers` |
-| `/jobs [status]` | Pipeline lifecycle view with a retry control for failed jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
+| `/jobs [status]` | Pipeline lifecycle view with a retry control for `FAILED` and `NEEDS_ATTENTION` jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
 | `/storage` | Disk usage. | `GET /storage` |
 | `/stop-seeding` | Pause every completed (seeding) torrent; downloads untouched. Ephemeral. | `POST /transfers/stop-seeding` |
 

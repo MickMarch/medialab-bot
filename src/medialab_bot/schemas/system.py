@@ -13,6 +13,7 @@ class HealthResponse(BaseModel):
     status: str
     uptime_seconds: float
     downstream: DownstreamHealth
+    needs_attention: int = 0
 
 
 class DiskUsageResponse(BaseModel):

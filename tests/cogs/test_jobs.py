@@ -146,3 +146,17 @@ async def test_retry_view_handles_failure(mock_client):
     await view.select.callback(interaction)
 
     assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+
+
+@pytest.mark.asyncio
+async def test_jobs_attaches_retry_view_when_needs_attention_present(mock_client):
+    mock_client.list_jobs = AsyncMock(
+        return_value=JobsResponse(status="success", jobs=[_make_job(status="NEEDS_ATTENTION")])
+    )
+    cog = JobsCog(mock_client)
+    interaction = make_interaction()
+
+    await cog.jobs.callback(cog, interaction)
+
+    kwargs = interaction.followup.send.await_args.kwargs
+    assert isinstance(kwargs["view"], JobRetryView)
