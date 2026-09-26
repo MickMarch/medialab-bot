@@ -42,7 +42,7 @@ The bot runs as a container from the workspace `docker-compose.yml`; see the
 | `/transfers` | Live transfers merged with pipeline job rows. | `GET /transfers` |
 | `/jobs [status]` | Pipeline lifecycle view with a retry control for `FAILED` and `NEEDS_ATTENTION` jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
 | `/storage` | Disk usage. | `GET /storage` |
-| `/delete` | Undo a download at any stage; shows the exact paths, then a red Delete button (60 s). Ephemeral. | `GET /jobs`, `GET /jobs/{id}/deletion-plan`, `DELETE /jobs/{id}` |
+| `/delete` | Undo a download at any stage. Three steps: pick it (`Title (Year)`, then status, date and release name so copies differ), review the exact paths, press the red Delete button (60 s). Nothing is touched before that button. Ephemeral. | `GET /jobs`, `GET /jobs/{id}/deletion-plan`, `DELETE /jobs/{id}` |
 | `/stop-seeding` | Pause every completed (seeding) torrent; downloads untouched. Ephemeral. | `POST /transfers/stop-seeding` |
 
 All routes are under `/api/v1` on the orchestrator. Rate-limit `429`s carry

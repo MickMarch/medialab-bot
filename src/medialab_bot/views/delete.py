@@ -9,13 +9,37 @@ from medialab_bot.schemas.jobs import JobView
 
 CONFIRM_TIMEOUT_SECONDS = 60.0
 _MAX_LISTED_PATHS = 15
+_DESCRIPTION_SEPARATOR = " · "
+_DATE_LENGTH = len("YYYY-MM-DD")
+
+
+def option_label(job: JobView) -> str:
+    """``Title (Year)`` when resolved, else the release name, else the id."""
+    if job.resolved_title:
+        label = job.resolved_title
+        if job.resolved_year:
+            label = f"{label} ({job.resolved_year})"
+    else:
+        label = job.release_name or job.id
+    return label[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
+
+
+def option_description(job: JobView) -> str:
+    """Status, date, then the release name: the only thing that tells two
+    copies of one title apart (language, resolution, group)."""
+    parts = [job.status, job.updated_at[:_DATE_LENGTH], job.release_name]
+    return _DESCRIPTION_SEPARATOR.join(p for p in parts if p)[
+        :DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+    ]
 
 
 def render_plan(plan: DeletionPlan) -> str:
     """The plan as the user must see it before confirming."""
     if plan.refused:
         return f"Cannot delete this job automatically: {plan.refused}"
-    lines = [f"This will remove, for job `{plan.job_id}`:"]
+    lines = [
+        f"Nothing has happened yet. Pressing **Delete** below will remove, for job `{plan.job_id}`:"
+    ]
     if plan.torrent:
         lines.append("- the torrent and its data in qBittorrent")
     if plan.download_folder:
@@ -66,18 +90,13 @@ class DeleteSelectView(discord.ui.View):
         self._client = client
         options = [
             discord.SelectOption(
-                label=(j.resolved_title or j.release_name or j.id)[
-                    :DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
-                ],
-                value=j.id,
-                description=f"{j.status} - {j.updated_at[:10]}"[
-                    :DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
-                ],
+                label=option_label(j), value=j.id, description=option_description(j)
             )
             for j in jobs
         ]
         self.select = discord.ui.Select(
-            placeholder="Choose the download to delete...", options=options
+            placeholder="Step 1 of 3: pick the download (release name shows language and quality)",
+            options=options,
         )
         self.select.callback = self._on_select
         self.add_item(self.select)
