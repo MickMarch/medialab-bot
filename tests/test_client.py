@@ -339,3 +339,13 @@ async def test_delete_job_deletes_and_parses(client):
 async def test_delete_job_returns_none_on_409(client):
     with patch.object(client._http, "delete", new=AsyncMock(return_value=_mock_response(409))):
         assert await client.delete_job("job-abc") is None
+
+
+@pytest.mark.asyncio
+async def test_search_torrents_passes_alt_query(client):
+    payload = {"status": "success", "message": "", "data": {}}
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ) as mock_get:
+        await client.search_torrents("Dune 2021", MediaType.MOVIE, alt_query="dune 2021")
+    assert mock_get.call_args.kwargs["params"]["alt_query"] == "dune 2021"

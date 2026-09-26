@@ -38,9 +38,11 @@ class SeasonScopeSelectMenu(discord.ui.View):
         year: str,
         tmdb_id: int,
         results_per_resolution: int,
+        typed_query: str | None = None,
     ) -> None:
         super().__init__()
         self._client = client
+        self._typed_query = typed_query
         self._title = title
         self._year = year
         self._tmdb_id = tmdb_id
@@ -89,6 +91,7 @@ class SeasonScopeSelectMenu(discord.ui.View):
                 media_type=MediaType.SHOW,
                 tmdb_id=self._tmdb_id,
                 results_per_resolution=self._results_per_resolution,
+                typed_query=self._typed_query,
             )
             return
 
@@ -108,6 +111,7 @@ class SeasonScopeSelectMenu(discord.ui.View):
             year=self._year,
             tmdb_id=self._tmdb_id,
             results_per_resolution=self._results_per_resolution,
+            typed_query=self._typed_query,
         )
         await interaction.edit_original_response(
             content=f"Choose an episode scope for **{self._title}** Season {season_number}:",
@@ -128,9 +132,11 @@ class EpisodeScopeSelectMenu(discord.ui.View):
         year: str,
         tmdb_id: int,
         results_per_resolution: int,
+        typed_query: str | None = None,
     ) -> None:
         super().__init__()
         self._client = client
+        self._typed_query = typed_query
         self._season = season
         self._title = title
         self._year = year
@@ -178,4 +184,5 @@ class EpisodeScopeSelectMenu(discord.ui.View):
             results_per_resolution=self._results_per_resolution,
             season=self._season,
             episode=episode,
+            typed_query=self._typed_query,
         )

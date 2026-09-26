@@ -424,3 +424,32 @@ def test_torrent_select_option_description_shows_language_tags(
     groups = {"1080p": [_make_torrent_result(seeders=7, languages=languages, multi_audio=multi)]}
     view = _torrent_view(groups, mock_client, mock_config)
     assert view.select.options[0].description == "7 seeders · 8.0 GB" + suffix
+
+
+async def test_typed_query_is_sent_as_alt_query(mock_client, mock_config):
+    from medialab_bot.schemas.torrents import TorrentSearchResponse
+
+    mock_client.search_torrents = AsyncMock(
+        return_value=TorrentSearchResponse(status="success", message="", data={})
+    )
+    view = TmdbSelectMenu(
+        [
+            _make_tmdb_result(
+                tmdb_id=1, title="Lee Cronin's The Mummy", year="2026", media_type="movie"
+            )
+        ],
+        mock_client,
+        max_results=25,
+        results_per_resolution=5,
+        typed_query="the mummy",
+    )
+    interaction = make_interaction()
+    interaction.data = {"values": ["1:movie"]}
+    await view._on_select(interaction)
+    mock_client.search_torrents.assert_awaited_once_with(
+        "Lee Cronin's The Mummy 2026",
+        MediaType.MOVIE,
+        season=None,
+        episode=None,
+        alt_query="the mummy 2026",
+    )

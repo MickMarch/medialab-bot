@@ -29,5 +29,6 @@ class SearchCog(commands.Cog):
             self._client,
             max_results=self._config.select_max_results,
             results_per_resolution=self._config.torrent_results_per_resolution,
+            typed_query=query,
         )
         await message.edit(content=f"Results for **{query}**:", view=view)
