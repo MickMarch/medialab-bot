@@ -7,6 +7,12 @@ from medialab_bot.format import format_size
 from medialab_bot.schemas.torrents import TorrentResult
 
 
+def torrent_query(title: str, year: str, media_type: MediaType) -> str:
+    # Movie release names carry the year; show release names do not, so a show
+    # query is the bare title (the season/episode scope refines it downstream).
+    return title if media_type is MediaType.SHOW else f"{title} {year}"
+
+
 async def run_torrent_search(
     interaction: discord.Interaction,
     client: OrchestratorClient,
@@ -18,6 +24,7 @@ async def run_torrent_search(
     results_per_resolution: int,
     season: int | None = None,
     episode: int | None = None,
+    typed_query: str | None = None,
 ) -> None:
     """Runs a scoped torrent search and edits the response with the torrent picker.
 
@@ -28,10 +35,14 @@ async def run_torrent_search(
         content=f"Searching for torrents matching **{title} ({year})**...",
         view=None,
     )
-    # Movie release names carry the year; show release names do not, so a show
-    # query is the bare title (the season/episode scope refines it downstream).
-    query = title if media_type is MediaType.SHOW else f"{title} {year}"
-    response = await client.search_torrents(query, media_type, season=season, episode=episode)
+    query = torrent_query(title, year, media_type)
+    # TMDB's canonical title and release names can differ ("Lee Cronin's The
+    # Mummy" vs "The Mummy 2026"); what the user typed is searched as well.
+    typed = (typed_query or "").strip()
+    alt_query = torrent_query(typed, year, media_type) if typed else None
+    response = await client.search_torrents(
+        query, media_type, season=season, episode=episode, alt_query=alt_query
+    )
 
     if response is None or not response.data:
         await interaction.edit_original_response(

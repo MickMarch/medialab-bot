@@ -18,10 +18,12 @@ class TmdbSelectMenu(discord.ui.View):
         client: OrchestratorClient,
         max_results: int,
         results_per_resolution: int,
+        typed_query: str | None = None,
     ) -> None:
         super().__init__()
         self._client = client
         self._results_per_resolution = results_per_resolution
+        self._typed_query = typed_query
 
         top_results = results[:max_results]
         self._results = {str(r.tmdb_id): r for r in top_results}
@@ -74,6 +76,7 @@ class TmdbSelectMenu(discord.ui.View):
             media_type=media_type,
             tmdb_id=result.tmdb_id,
             results_per_resolution=self._results_per_resolution,
+            typed_query=self._typed_query,
         )
 
     async def _prompt_show_scope(
@@ -92,6 +95,7 @@ class TmdbSelectMenu(discord.ui.View):
                 media_type=MediaType.SHOW,
                 tmdb_id=result.tmdb_id,
                 results_per_resolution=self._results_per_resolution,
+                typed_query=self._typed_query,
             )
             return
 
@@ -102,6 +106,7 @@ class TmdbSelectMenu(discord.ui.View):
             year=result.year,
             tmdb_id=result.tmdb_id,
             results_per_resolution=self._results_per_resolution,
+            typed_query=self._typed_query,
         )
         await interaction.edit_original_response(
             content=f"Choose a download scope for **{result.title} ({result.year})**:",
