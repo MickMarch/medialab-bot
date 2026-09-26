@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The torrent picker shows the audio language tag parsed by the downloader
+  (`· FRENCH`, `· ITALIAN/ENGLISH`, `· MULTi`); untagged releases show
+  nothing extra.
+
 ## [2.5.0] - 2026-09-25
 
 ### Changed

@@ -166,3 +166,27 @@ def test_merged_transfers_response_parses():
 def test_download_response_wraps_job():
     response = DownloadResponse(status="success", job=_JOB)
     assert response.job.torrent_hash == "abc123"
+
+
+def test_torrent_result_language_fields_default_when_absent():
+    from medialab_bot.schemas.torrents import TorrentResult
+
+    result = TorrentResult(fileName="x", fileUrl="magnet:?x", nbSeeders=1, nbLeechers=0, fileSize=1)
+    assert result.languages == []
+    assert result.multi_audio is False
+
+
+def test_torrent_result_language_fields_parse_wire_names():
+    from medialab_bot.schemas.torrents import TorrentResult
+
+    result = TorrentResult(
+        fileName="x",
+        fileUrl="magnet:?x",
+        nbSeeders=1,
+        nbLeechers=0,
+        fileSize=1,
+        languages=["French"],
+        multiAudio=True,
+    )
+    assert result.languages == ["French"]
+    assert result.multi_audio is True
