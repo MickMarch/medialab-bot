@@ -23,7 +23,9 @@ class JobRetryView(discord.ui.View):
             )
             for j in failed_jobs
         ]
-        self.select = discord.ui.Select(placeholder="Retry a failed job...", options=options)
+        self.select = discord.ui.Select(
+            placeholder="Retry a failed or flagged job...", options=options
+        )
         self.select.callback = self._on_select
         self.add_item(self.select)
 

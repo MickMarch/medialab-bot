@@ -19,6 +19,8 @@ class JobView(BaseModel):
     status: str
     last_error: str | None = None
     attempts: int = 0
+    remediations: int = 0
+    seeding_removed_at: str | None = None
     created_at: str
     updated_at: str
 

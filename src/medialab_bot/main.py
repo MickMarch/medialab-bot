@@ -32,6 +32,10 @@ async def _run(config: AppConfig) -> None:
                 "up" if down.torrent_downloader else "down",
                 "up" if down.medialab_jellyfin else "down",
             )
+            if health.needs_attention:
+                logger.warning(
+                    "%d job(s) need attention; see /jobs NEEDS_ATTENTION", health.needs_attention
+                )
             if not (down.torrent_downloader and down.medialab_jellyfin):
                 logger.warning("one or more downstream workers are unreachable")
 
