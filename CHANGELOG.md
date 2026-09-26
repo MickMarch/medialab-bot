@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `/delete` labels each download `Title (Year)` and shows status, date and the
+  release name, so two copies of one title (wrong language, right language)
+  can be told apart. The command and its messages spell out the three steps
+  and that nothing is touched before the red Delete button.
+
 ## [2.7.0] - 2026-09-26
 
 ### Added
