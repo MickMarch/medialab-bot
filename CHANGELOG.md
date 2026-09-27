@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-09-27
+
 ### Added
 
 - `/popular type:<movie|show> [genre]`: trending titles with rating and an
