@@ -1,7 +1,7 @@
 import discord
-from medialab_contracts import PosterSize, poster_url
+from medialab_contracts import PosterSize, WatchlistKind, poster_url
 
-from medialab_bot.constants import DISCORD_EMBED_MAX_FIELDS
+from medialab_bot.constants import DISCORD_EMBED_MAX_FIELDS, WATCHLIST_MARKERS
 from medialab_bot.format import format_progress
 from medialab_bot.schemas.jobs import JobsResponse
 from medialab_bot.schemas.system import DiskUsageResponse
@@ -71,6 +71,11 @@ def storage_embed(response: DiskUsageResponse) -> discord.Embed:
 
 def display_title(title: str, year: str | None) -> str:
     return f"{title} ({year})" if year else title
+
+
+def watchlist_marker(kind: WatchlistKind | None) -> str:
+    """Saved is the marker when the gateway flags a title without saying which kind."""
+    return WATCHLIST_MARKERS[kind or WatchlistKind.SAVED]
 
 
 def title_embed(

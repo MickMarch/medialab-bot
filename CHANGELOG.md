@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Title cards for shows gain **Follow** / **Unfollow**: one tap follows the
+  show for new episodes only at the default resolution (saving it first when
+  it is not on the watchlist yet); Unfollow keeps the show saved. Every other
+  follow control is web only.
+- `/watchlist` takes an optional `kind` (`Saved` or `Following`); a followed
+  show's line shows `following` and its last submitted episode.
+
+### Changed
+
+- **Breaking:** `/wishlist` is now `/watchlist`. The title card button reads
+  **Save** / **Unsave**, and list markers are `saved` / `following` instead of
+  `wishlisted`.
+- `medialab-contracts` pinned to v1.0.0 (watchlist and follow models replace
+  the wishlist ones).
+
 ## [2.13.0] - 2026-09-27
 
 ### Changed

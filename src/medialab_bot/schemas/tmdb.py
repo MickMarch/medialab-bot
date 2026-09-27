@@ -1,5 +1,6 @@
 from typing import Any
 
+from medialab_contracts import WatchlistKind
 from pydantic import BaseModel
 
 
@@ -11,7 +12,8 @@ class TmdbSearchResult(BaseModel):
     overview: str
     vote_average: float
     poster_path: str | None
-    on_wishlist: bool = False
+    on_watchlist: bool = False
+    watchlist_kind: WatchlistKind | None = None
     in_library: bool = False
 
 
