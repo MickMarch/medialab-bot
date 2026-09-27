@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Picking a torrent sends the season and episode the search was scoped with
+  to `POST /download`, so the job records its scope. A movie or whole-series
+  pick sends neither. `JobView` gains optional `season` and `episode`.
+- `medialab-contracts` pinned to v0.11.0.
+
 ## [2.12.0] - 2026-09-27
 
 ### Added

@@ -142,6 +142,18 @@ def test_job_view_allows_null_torrent_hash():
     assert job.torrent_hash is None
 
 
+def test_job_view_scope_defaults_to_none():
+    job = JobView(**_JOB)
+    assert job.season is None
+    assert job.episode is None
+
+
+def test_job_view_parses_scope():
+    job = JobView(**{**_JOB, "season": 2, "episode": 5})
+    assert job.season == 2
+    assert job.episode == 5
+
+
 def test_jobs_response_parses():
     response = JobsResponse(status="success", jobs=[_JOB])
     assert len(response.jobs) == 1

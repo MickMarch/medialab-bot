@@ -369,6 +369,39 @@ async def test_download_sends_release_name(client):
     assert mock_post.call_args.kwargs["json"]["release_name"] == "Dune.2021-GRP"
 
 
+@pytest.mark.asyncio
+async def test_download_sends_season_and_episode_when_scoped(client):
+    payload = {"status": "success", "job": _JOB}
+    mock_post = AsyncMock(return_value=_mock_response(202, payload))
+    with patch.object(client._http, "post", new=mock_post):
+        await client.download("magnet:?xt=urn:btih:abc", MediaType.SHOW, 1396, season=2, episode=5)
+    body = mock_post.call_args.kwargs["json"]
+    assert body["season"] == 2
+    assert body["episode"] == 5
+
+
+@pytest.mark.asyncio
+async def test_download_sends_season_only_for_season_scope(client):
+    payload = {"status": "success", "job": _JOB}
+    mock_post = AsyncMock(return_value=_mock_response(202, payload))
+    with patch.object(client._http, "post", new=mock_post):
+        await client.download("magnet:?xt=urn:btih:abc", MediaType.SHOW, 1396, season=2)
+    body = mock_post.call_args.kwargs["json"]
+    assert body["season"] == 2
+    assert "episode" not in body
+
+
+@pytest.mark.asyncio
+async def test_download_omits_scope_keys_when_unscoped(client):
+    payload = {"status": "success", "job": _JOB}
+    mock_post = AsyncMock(return_value=_mock_response(202, payload))
+    with patch.object(client._http, "post", new=mock_post):
+        await client.download("magnet:?xt=urn:btih:abc", MediaType.SHOW, 1396)
+    body = mock_post.call_args.kwargs["json"]
+    assert "season" not in body
+    assert "episode" not in body
+
+
 # --- discover and wishlist ---
 
 _DISCOVER = {
