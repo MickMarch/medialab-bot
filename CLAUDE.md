@@ -56,10 +56,10 @@ src/medialab_bot/
 ├── media.py       TMDB media type -> contracts MediaType
 ├── client/        OrchestratorClient as mixins: _base (GET/POST/parse), _tmdb,
 │                  _torrents (search + download), _status (health/transfers/storage), _jobs,
-│                  _discover (discover, genres, wishlist)
+│                  _discover (discover, genres, watchlist, follow)
 ├── schemas/       tmdb, torrents, transfers, jobs, system, downloads, actions, deletion, errors
 ├── cogs/          search (/search), status (/transfers, /storage, /stop-seeding), jobs (/jobs),
-│                delete (/delete), discover (/popular, /wishlist)
+│                delete (/delete), discover (/popular, /watchlist)
 ├── views/         tmdb (TmdbSelectMenu), scope (season/episode pickers),
 │                  torrent (TorrentSelectMenu + run_torrent_search), jobs (JobRetryView),
 │                  delete (DeleteSelectView -> DeleteConfirmView),

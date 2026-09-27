@@ -1,45 +1,80 @@
-"""/popular and /wishlist: pick a title, then Download or toggle it on the wishlist.
+"""/popular and /watchlist: pick a title, then Download, Save / Unsave, or Follow / Unfollow.
 
-Download hands off to the same scope pickers and torrent search as /search.
+Download hands off to the same scope pickers and torrent search as /search. Follow is
+one tap: new episodes only at the default resolution. Every other follow control lives
+in the web UI.
 """
 
 from collections.abc import Sequence
 
 import discord
-from medialab_contracts import DiscoverItem, MediaType, WishlistAddRequest, WishlistItem
+from medialab_contracts import (
+    DEFAULT_FOLLOW_RESOLUTION,
+    DiscoverItem,
+    FollowRequest,
+    FollowStart,
+    FollowStartMode,
+    MediaType,
+    WatchlistAddRequest,
+    WatchlistItem,
+    WatchlistKind,
+)
 
 from medialab_bot.client import OrchestratorClient
 from medialab_bot.constants import (
     DISCORD_SELECT_MAX_OPTIONS,
     DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH,
     IN_LIBRARY_MARKER,
-    WISHLIST_MARKER,
 )
-from medialab_bot.embeds import display_title, title_embed
+from medialab_bot.embeds import display_title, title_embed, watchlist_marker
 from medialab_bot.views.scope import prompt_show_scope
 from medialab_bot.views.torrent import run_torrent_search
 
-type ListedTitle = DiscoverItem | WishlistItem
+type ListedTitle = DiscoverItem | WatchlistItem
 
 DOWNLOAD_LABEL = "Download"
-WISHLIST_ADD_LABEL = "Wishlist"
-WISHLIST_REMOVE_LABEL = "Remove"
+SAVE_LABEL = "Save"
+UNSAVE_LABEL = "Unsave"
+FOLLOW_LABEL = "Follow"
+UNFOLLOW_LABEL = "Unfollow"
 _SEPARATOR = " - "
 _VALUE_SEPARATOR = ":"
+_LAST_SUBMITTED_PREFIX = "last "
 _SELECTION_ERROR = "Something went wrong with your selection. Please try again."
-_WISHLIST_ERROR = "Could not update the wishlist right now. Please try again."
+_WATCHLIST_ERROR = "Could not update the watchlist right now. Please try again."
+_FOLLOW_ERROR = "Could not update the follow right now. Please try again."
+_ONE_TAP_FOLLOW = FollowRequest(
+    start=FollowStart(mode=FollowStartMode.NEW_ONLY), resolution=DEFAULT_FOLLOW_RESOLUTION
+)
 
 
 def _rating(item: ListedTitle) -> str | None:
     return f"{item.vote_average:.1f}" if isinstance(item, DiscoverItem) else None
 
 
-def _is_on_wishlist(item: ListedTitle) -> bool:
-    return isinstance(item, WishlistItem) or item.on_wishlist
+def _is_on_watchlist(item: ListedTitle) -> bool:
+    return isinstance(item, WatchlistItem) or item.on_watchlist
+
+
+def _is_following(item: ListedTitle) -> bool:
+    kind = item.kind if isinstance(item, WatchlistItem) else item.watchlist_kind
+    return kind is WatchlistKind.FOLLOWING
 
 
 def _value(item: ListedTitle) -> str:
     return f"{item.media_type.value}{_VALUE_SEPARATOR}{item.tmdb_id}"
+
+
+def _watchlist_annotations(item: ListedTitle) -> list[str]:
+    if isinstance(item, DiscoverItem):
+        return [watchlist_marker(item.watchlist_kind)] if item.on_watchlist else []
+    # Every /watchlist item is saved; only a follow is worth calling out there.
+    if not _is_following(item):
+        return []
+    parts = [watchlist_marker(item.kind)]
+    if item.follow is not None and item.follow.last_submitted:
+        parts.append(f"{_LAST_SUBMITTED_PREFIX}{item.follow.last_submitted}")
+    return parts
 
 
 def _annotations(item: ListedTitle) -> list[str]:
@@ -49,14 +84,12 @@ def _annotations(item: ListedTitle) -> list[str]:
         parts.append(rating)
     if item.in_library:
         parts.append(IN_LIBRARY_MARKER)
-    # Every /wishlist item is on the wishlist; the marker only helps in discover lists.
-    if isinstance(item, DiscoverItem) and item.on_wishlist:
-        parts.append(WISHLIST_MARKER)
+    parts.extend(_watchlist_annotations(item))
     return parts
 
 
 def list_line(item: ListedTitle) -> str:
-    """``Title (year) - rating``, plus the library and wishlist markers when they apply."""
+    """``Title (year) - rating``, plus the library and watchlist markers when they apply."""
     return _SEPARATOR.join([display_title(item.title, item.year), *_annotations(item)])
 
 
@@ -65,20 +98,22 @@ def _details(item: ListedTitle) -> str:
 
 
 class TitleActionView(discord.ui.View):
-    """Download and Wishlist / Remove for one chosen title."""
+    """Download, Save / Unsave and, for shows, Follow / Unfollow for one chosen title."""
 
     def __init__(
         self,
         client: OrchestratorClient,
         item: ListedTitle,
         results_per_resolution: int,
-        on_wishlist: bool,
+        on_watchlist: bool,
+        following: bool = False,
     ) -> None:
         super().__init__()
         self._client = client
         self._item = item
         self._results_per_resolution = results_per_resolution
-        self._on_wishlist = on_wishlist
+        self._on_watchlist = on_watchlist
+        self._following = following
 
         self.download_button: discord.ui.Button = discord.ui.Button(
             label=DOWNLOAD_LABEL, style=discord.ButtonStyle.primary
@@ -86,18 +121,33 @@ class TitleActionView(discord.ui.View):
         self.download_button.callback = self._on_download
         self.add_item(self.download_button)
 
-        self.wishlist_button: discord.ui.Button = discord.ui.Button()
-        self.wishlist_button.callback = self._on_toggle_wishlist
-        self._render_wishlist_button()
-        self.add_item(self.wishlist_button)
+        self.save_button: discord.ui.Button = discord.ui.Button()
+        self.save_button.callback = self._on_toggle_save
+        self.add_item(self.save_button)
 
-    def _render_wishlist_button(self) -> None:
-        if self._on_wishlist:
-            self.wishlist_button.label = WISHLIST_REMOVE_LABEL
-            self.wishlist_button.style = discord.ButtonStyle.danger
+        self.follow_button: discord.ui.Button | None = None
+        if item.media_type is MediaType.SHOW:
+            self.follow_button = discord.ui.Button()
+            self.follow_button.callback = self._on_toggle_follow
+            self.add_item(self.follow_button)
+
+        self._render_buttons()
+
+    def _render_buttons(self) -> None:
+        if self._on_watchlist:
+            self.save_button.label = UNSAVE_LABEL
+            self.save_button.style = discord.ButtonStyle.danger
         else:
-            self.wishlist_button.label = WISHLIST_ADD_LABEL
-            self.wishlist_button.style = discord.ButtonStyle.secondary
+            self.save_button.label = SAVE_LABEL
+            self.save_button.style = discord.ButtonStyle.secondary
+        if self.follow_button is None:
+            return
+        if self._following:
+            self.follow_button.label = UNFOLLOW_LABEL
+            self.follow_button.style = discord.ButtonStyle.danger
+        else:
+            self.follow_button.label = FOLLOW_LABEL
+            self.follow_button.style = discord.ButtonStyle.success
 
     async def _on_download(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)
@@ -123,34 +173,67 @@ class TitleActionView(discord.ui.View):
             results_per_resolution=self._results_per_resolution,
         )
 
-    async def _on_toggle_wishlist(self, interaction: discord.Interaction) -> None:
+    async def _save(self) -> bool:
+        item = self._item
+        request = WatchlistAddRequest(
+            title=item.title,
+            year=item.year,
+            poster_path=item.poster_path,
+            overview=item.overview,
+        )
+        saved = await self._client.add_to_watchlist(item.media_type, item.tmdb_id, request)
+        self._on_watchlist = saved is not None
+        return self._on_watchlist
+
+    async def _show_buttons(self, interaction: discord.Interaction) -> None:
+        self._render_buttons()
+        await interaction.edit_original_response(view=self)
+
+    async def _on_toggle_save(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer(ephemeral=True)
         item = self._item
-        if self._on_wishlist:
-            ok = await self._client.remove_from_wishlist(item.media_type, item.tmdb_id)
+        if self._on_watchlist:
+            ok = await self._client.remove_from_watchlist(item.media_type, item.tmdb_id)
+            if ok:
+                # Removing the row drops any follow with it.
+                self._on_watchlist = False
+                self._following = False
         else:
-            request = WishlistAddRequest(
-                title=item.title,
-                year=item.year,
-                poster_path=item.poster_path,
-                overview=item.overview,
-            )
-            ok = (
-                await self._client.add_to_wishlist(item.media_type, item.tmdb_id, request)
-                is not None
-            )
+            ok = await self._save()
 
         if not ok:
-            await interaction.followup.send(_WISHLIST_ERROR, ephemeral=True)
+            await interaction.followup.send(_WATCHLIST_ERROR, ephemeral=True)
+            return
+        await self._show_buttons(interaction)
+
+    async def _on_toggle_follow(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+        tmdb_id = self._item.tmdb_id
+        if self._following:
+            if not await self._client.unfollow_show(tmdb_id):
+                await interaction.followup.send(_FOLLOW_ERROR, ephemeral=True)
+                return
+            self._following = False
+            await self._show_buttons(interaction)
             return
 
-        self._on_wishlist = not self._on_wishlist
-        self._render_wishlist_button()
-        await interaction.edit_original_response(view=self)
+        # The gateway only follows a saved show, so save first when needed.
+        if not self._on_watchlist and not await self._save():
+            await interaction.followup.send(_WATCHLIST_ERROR, ephemeral=True)
+            return
+        followed = await self._client.follow_show(tmdb_id, _ONE_TAP_FOLLOW)
+        if followed is None:
+            # The save above may have succeeded; show that even though the follow failed.
+            self._render_buttons()
+            await interaction.edit_original_response(view=self)
+            await interaction.followup.send(_FOLLOW_ERROR, ephemeral=True)
+            return
+        self._following = True
+        await self._show_buttons(interaction)
 
 
 class TitlePickView(discord.ui.View):
-    """Select menu over a discover or wishlist list; the pick opens a TitleActionView."""
+    """Select menu over a discover or watchlist list; the pick opens a TitleActionView."""
 
     def __init__(
         self,
@@ -197,6 +280,7 @@ class TitlePickView(discord.ui.View):
             self._client,
             item,
             results_per_resolution=self._results_per_resolution,
-            on_wishlist=_is_on_wishlist(item),
+            on_watchlist=_is_on_watchlist(item),
+            following=_is_following(item),
         )
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)

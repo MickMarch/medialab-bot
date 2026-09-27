@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import discord
 from discord import app_commands
 from discord.ext import commands
-from medialab_contracts import MediaType
+from medialab_contracts import MediaType, WatchlistKind
 
 from medialab_bot.client import OrchestratorClient
 from medialab_bot.config import AppConfig
@@ -19,11 +19,15 @@ _TYPE_CHOICES = [
     app_commands.Choice(name=label, value=media_type.value)
     for media_type, label in _TYPE_LABELS.items()
 ]
+_KIND_LABELS = {WatchlistKind.SAVED: "Saved", WatchlistKind.FOLLOWING: "Following"}
+_KIND_CHOICES = [
+    app_commands.Choice(name=label, value=kind.value) for kind, label in _KIND_LABELS.items()
+]
 _UNAVAILABLE = "Could not reach the title catalogue right now. Please try again in a moment."
-_WISHLIST_UNAVAILABLE = "Could not load the wishlist right now. Please try again in a moment."
+_WATCHLIST_UNAVAILABLE = "Could not load the watchlist right now. Please try again in a moment."
 _NO_TITLES = "No titles found for that choice."
-_EMPTY_WISHLIST = "The wishlist is empty. Add titles from `/popular`."
-_WISHLIST_HEADING = "Wishlist"
+_EMPTY_WATCHLIST = "The watchlist is empty. Save titles from `/popular` or `/search`."
+_WATCHLIST_HEADING = "Watchlist"
 
 
 class DiscoverCog(commands.Cog):
@@ -88,14 +92,24 @@ class DiscoverCog(commands.Cog):
             if needle in genre.name.casefold()
         ][:DISCORD_AUTOCOMPLETE_MAX_CHOICES]
 
-    @app_commands.command(name="wishlist", description="Titles saved for later")
-    async def wishlist(self, interaction: discord.Interaction) -> None:
+    @app_commands.command(name="watchlist", description="Saved titles and followed shows")
+    @app_commands.describe(kind="Only saved titles, or only followed shows")
+    @app_commands.choices(kind=_KIND_CHOICES)
+    async def watchlist(
+        self, interaction: discord.Interaction, kind: app_commands.Choice[str] | None = None
+    ) -> None:
         await interaction.response.defer(ephemeral=True)
-        response = await self._client.list_wishlist()
+        chosen = WatchlistKind(kind.value) if kind is not None else None
+        response = await self._client.list_watchlist(kind=chosen)
         if response is None:
-            await interaction.followup.send(_WISHLIST_UNAVAILABLE, ephemeral=True)
+            await interaction.followup.send(_WATCHLIST_UNAVAILABLE, ephemeral=True)
             return
         if not response.items:
-            await interaction.followup.send(_EMPTY_WISHLIST, ephemeral=True)
+            await interaction.followup.send(_EMPTY_WATCHLIST, ephemeral=True)
             return
-        await self._send_list(interaction, _WISHLIST_HEADING, response.items)
+        heading = (
+            _WATCHLIST_HEADING
+            if chosen is None
+            else f"{_WATCHLIST_HEADING}: {_KIND_LABELS[chosen]}"
+        )
+        await self._send_list(interaction, heading, response.items)

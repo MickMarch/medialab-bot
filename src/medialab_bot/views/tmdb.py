@@ -2,12 +2,8 @@ import discord
 from medialab_contracts import MediaType
 
 from medialab_bot.client import OrchestratorClient
-from medialab_bot.constants import (
-    DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH,
-    IN_LIBRARY_MARKER,
-    WISHLIST_MARKER,
-)
-from medialab_bot.embeds import title_embed
+from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH, IN_LIBRARY_MARKER
+from medialab_bot.embeds import title_embed, watchlist_marker
 from medialab_bot.media import from_tmdb_media_type
 from medialab_bot.schemas.tmdb import TmdbSearchResult
 from medialab_bot.views.scope import prompt_show_scope
@@ -20,8 +16,8 @@ def _description(result: TmdbSearchResult) -> str:
     parts = [result.media_type, f"⭐ {result.vote_average}"]
     if result.in_library:
         parts.append(IN_LIBRARY_MARKER)
-    if result.on_wishlist:
-        parts.append(WISHLIST_MARKER)
+    if result.on_watchlist:
+        parts.append(watchlist_marker(result.watchlist_kind))
     return _SEPARATOR.join(parts)[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
 
 

@@ -4,11 +4,15 @@ import httpx
 import pytest
 from medialab_contracts import (
     DiscoverResponse,
+    FollowRequest,
+    FollowStart,
+    FollowStartMode,
     GenresResponse,
     MediaType,
-    WishlistAddRequest,
-    WishlistItem,
-    WishlistResponse,
+    WatchlistAddRequest,
+    WatchlistItem,
+    WatchlistKind,
+    WatchlistResponse,
 )
 
 from medialab_bot.client import OrchestratorClient
@@ -402,7 +406,7 @@ async def test_download_omits_scope_keys_when_unscoped(client):
     assert "episode" not in body
 
 
-# --- discover and wishlist ---
+# --- discover and watchlist ---
 
 _DISCOVER = {
     "items": [{"tmdb_id": 1, "media_type": "movie", "title": "Dune", "year": "2021"}],
@@ -410,7 +414,7 @@ _DISCOVER = {
     "total_pages": 3,
     "cached_at": "2026-09-27T00:00:00+00:00",
 }
-_WISHLIST_ITEM = {
+_WATCHLIST_ITEM = {
     "tmdb_id": 1,
     "media_type": "movie",
     "title": "Dune",
@@ -463,64 +467,120 @@ async def test_discover_genres_parses(client):
 
 
 @pytest.mark.asyncio
-async def test_list_wishlist_filters_by_media_type(client):
-    payload = {"items": [_WISHLIST_ITEM]}
+async def test_list_watchlist_filters_by_media_type(client):
+    payload = {"items": [_WATCHLIST_ITEM]}
     with patch.object(
         client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
     ) as mock_get:
-        response = await client.list_wishlist(MediaType.MOVIE)
-    assert mock_get.call_args.args[0].endswith("/wishlist")
+        response = await client.list_watchlist(MediaType.MOVIE)
+    assert mock_get.call_args.args[0].endswith("/watchlist")
     assert mock_get.call_args.kwargs["params"] == {"media_type": "movie"}
-    assert isinstance(response, WishlistResponse)
+    assert isinstance(response, WatchlistResponse)
     assert response.items[0].tmdb_id == 1
 
 
 @pytest.mark.asyncio
-async def test_list_wishlist_without_filter(client):
+async def test_list_watchlist_filters_by_kind(client):
     with patch.object(
         client._http, "get", new=AsyncMock(return_value=_mock_response(200, {"items": []}))
     ) as mock_get:
-        await client.list_wishlist()
+        await client.list_watchlist(kind=WatchlistKind.FOLLOWING)
+    assert mock_get.call_args.kwargs["params"] == {"kind": "following"}
+
+
+@pytest.mark.asyncio
+async def test_list_watchlist_without_filter(client):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, {"items": []}))
+    ) as mock_get:
+        await client.list_watchlist()
     assert mock_get.call_args.kwargs["params"] == {}
 
 
 @pytest.mark.asyncio
-async def test_add_to_wishlist_puts_body(client):
-    body = WishlistAddRequest(title="Dune", year="2021", poster_path="/p.jpg", overview="Sand.")
+async def test_add_to_watchlist_puts_body(client):
+    body = WatchlistAddRequest(title="Dune", year="2021", poster_path="/p.jpg", overview="Sand.")
     with patch.object(
-        client._http, "put", new=AsyncMock(return_value=_mock_response(200, _WISHLIST_ITEM))
+        client._http, "put", new=AsyncMock(return_value=_mock_response(200, _WATCHLIST_ITEM))
     ) as mock_put:
-        item = await client.add_to_wishlist(MediaType.MOVIE, 1, body)
-    assert mock_put.call_args.args[0].endswith("/wishlist/movie/1")
+        item = await client.add_to_watchlist(MediaType.MOVIE, 1, body)
+    assert mock_put.call_args.args[0].endswith("/watchlist/movie/1")
     assert mock_put.call_args.kwargs["json"] == body.model_dump(mode="json")
-    assert isinstance(item, WishlistItem)
+    assert isinstance(item, WatchlistItem)
 
 
 @pytest.mark.asyncio
-async def test_add_to_wishlist_returns_none_on_error(client):
-    body = WishlistAddRequest(title="Dune")
+async def test_add_to_watchlist_returns_none_on_error(client):
+    body = WatchlistAddRequest(title="Dune")
     with patch.object(client._http, "put", new=AsyncMock(return_value=_mock_response(500))):
-        assert await client.add_to_wishlist(MediaType.MOVIE, 1, body) is None
+        assert await client.add_to_watchlist(MediaType.MOVIE, 1, body) is None
 
 
 @pytest.mark.asyncio
-async def test_remove_from_wishlist_true_on_204(client):
+async def test_remove_from_watchlist_true_on_204(client):
     with patch.object(
         client._http, "delete", new=AsyncMock(return_value=_mock_response(204))
     ) as mock_delete:
-        assert await client.remove_from_wishlist(MediaType.SHOW, 7) is True
-    assert mock_delete.call_args.args[0].endswith("/wishlist/show/7")
+        assert await client.remove_from_watchlist(MediaType.SHOW, 7) is True
+    assert mock_delete.call_args.args[0].endswith("/watchlist/show/7")
 
 
 @pytest.mark.asyncio
-async def test_remove_from_wishlist_false_on_error(client):
+async def test_remove_from_watchlist_false_on_error(client):
     with patch.object(client._http, "delete", new=AsyncMock(return_value=_mock_response(500))):
-        assert await client.remove_from_wishlist(MediaType.SHOW, 7) is False
+        assert await client.remove_from_watchlist(MediaType.SHOW, 7) is False
 
 
 @pytest.mark.asyncio
-async def test_remove_from_wishlist_false_on_network_error(client):
+async def test_remove_from_watchlist_false_on_network_error(client):
     with patch.object(
         client._http, "delete", new=AsyncMock(side_effect=httpx.ConnectError("boom"))
     ):
-        assert await client.remove_from_wishlist(MediaType.SHOW, 7) is False
+        assert await client.remove_from_watchlist(MediaType.SHOW, 7) is False
+
+
+_FOLLOWED_ITEM = {
+    **_WATCHLIST_ITEM,
+    "media_type": "show",
+    "kind": "following",
+    "follow": {
+        "start": {"mode": "new_only"},
+        "resolution": "1080p",
+        "followed_at": "2026-09-27T00:00:00+00:00",
+    },
+}
+
+
+@pytest.mark.asyncio
+async def test_follow_show_puts_request_body(client):
+    body = FollowRequest(start=FollowStart(mode=FollowStartMode.NEW_ONLY))
+    with patch.object(
+        client._http, "put", new=AsyncMock(return_value=_mock_response(200, _FOLLOWED_ITEM))
+    ) as mock_put:
+        item = await client.follow_show(7, body)
+    assert mock_put.call_args.args[0].endswith("/watchlist/show/7/follow")
+    assert mock_put.call_args.kwargs["json"] == body.model_dump(mode="json")
+    assert isinstance(item, WatchlistItem)
+    assert item.kind is WatchlistKind.FOLLOWING
+
+
+@pytest.mark.asyncio
+async def test_follow_show_returns_none_on_error(client):
+    body = FollowRequest(start=FollowStart(mode=FollowStartMode.NEW_ONLY))
+    with patch.object(client._http, "put", new=AsyncMock(return_value=_mock_response(404))):
+        assert await client.follow_show(7, body) is None
+
+
+@pytest.mark.asyncio
+async def test_unfollow_show_true_on_204(client):
+    with patch.object(
+        client._http, "delete", new=AsyncMock(return_value=_mock_response(204))
+    ) as mock_delete:
+        assert await client.unfollow_show(7) is True
+    assert mock_delete.call_args.args[0].endswith("/watchlist/show/7/follow")
+
+
+@pytest.mark.asyncio
+async def test_unfollow_show_false_on_error(client):
+    with patch.object(client._http, "delete", new=AsyncMock(return_value=_mock_response(500))):
+        assert await client.unfollow_show(7) is False
