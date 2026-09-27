@@ -82,6 +82,38 @@ class _BaseClient:
             logger.error("DELETE %s returned non-JSON response", path)
             return None
 
+    async def _put(self, path: str, json: dict, timeout: float | None = None) -> dict | None:
+        try:
+            response = await self._http.put(path, json=json, timeout=timeout)
+            if response.status_code != httpx.codes.OK:
+                logger.warning("PUT %s returned %d", path, response.status_code)
+                return None
+            return response.json()
+        except httpx.TimeoutException:
+            logger.warning("PUT %s timed out", path)
+            return None
+        except (httpx.ConnectError, httpx.HTTPError):
+            logger.warning("PUT %s failed with network error", path)
+            return None
+        except ValueError:
+            logger.error("PUT %s returned non-JSON response", path)
+            return None
+
+    async def _delete_no_content(self, path: str, timeout: float | None = None) -> bool:
+        """DELETE that expects 204 and no body; True on success."""
+        try:
+            response = await self._http.delete(path, timeout=timeout)
+        except httpx.TimeoutException:
+            logger.warning("DELETE %s timed out", path)
+            return False
+        except (httpx.ConnectError, httpx.HTTPError):
+            logger.warning("DELETE %s failed with network error", path)
+            return False
+        if response.status_code != httpx.codes.NO_CONTENT:
+            logger.warning("DELETE %s returned %d", path, response.status_code)
+            return False
+        return True
+
     @staticmethod
     def _parse(model: type[ModelT], data: dict | None) -> ModelT | None:
         if data is None:

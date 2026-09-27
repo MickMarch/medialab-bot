@@ -1,4 +1,5 @@
 import discord
+from medialab_contracts import PosterSize, poster_url
 
 from medialab_bot.constants import DISCORD_EMBED_MAX_FIELDS
 from medialab_bot.schemas.jobs import JobsResponse
@@ -63,3 +64,31 @@ def storage_embed(response: DiskUsageResponse) -> discord.Embed:
     )
     embed.add_field(name="Free", value=f"{response.free_gb:.1f} GB", inline=True)
     return embed
+
+
+def display_title(title: str, year: str | None) -> str:
+    return f"{title} ({year})" if year else title
+
+
+def title_embed(
+    title: str,
+    year: str | None,
+    *,
+    overview: str = "",
+    poster_path: str | None = None,
+    footer: str | None = None,
+) -> discord.Embed:
+    """One title's card; the poster is a thumbnail only when TMDB has one."""
+    embed = discord.Embed(
+        title=display_title(title, year), description=overview or None, color=discord.Color.teal()
+    )
+    thumbnail = poster_url(poster_path, PosterSize.THUMBNAIL)
+    if thumbnail is not None:
+        embed.set_thumbnail(url=thumbnail)
+    if footer:
+        embed.set_footer(text=footer)
+    return embed
+
+
+def title_list_embed(heading: str, lines: list[str]) -> discord.Embed:
+    return discord.Embed(title=heading, description="\n".join(lines), color=discord.Color.teal())

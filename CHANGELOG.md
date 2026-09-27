@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `/popular type:<movie|show> [genre]`: trending titles with rating and an
+  "in Jellyfin" marker, genre autocomplete, and a title card with the poster,
+  overview, **Download** (same scope and torrent steps as `/search`) and
+  **Wishlist** / **Remove**.
+- `/wishlist`: the shared wishlist, each title with **Download** and **Remove**.
+- `/search` shows the chosen title's poster as a thumbnail.
+
+### Changed
+
+- medialab-contracts pin bumped to v0.9.0 (discover and wishlist models,
+  `poster_url`).
+
 ## [2.10.0] - 2026-09-26
 
 ### Changed

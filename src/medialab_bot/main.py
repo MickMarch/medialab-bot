@@ -6,6 +6,7 @@ from discord.ext import commands
 
 from medialab_bot.client import OrchestratorClient
 from medialab_bot.cogs.delete import DeleteCog
+from medialab_bot.cogs.discover import DiscoverCog
 from medialab_bot.cogs.jobs import JobsCog
 from medialab_bot.cogs.search import SearchCog
 from medialab_bot.cogs.status import StatusCog
@@ -49,6 +50,7 @@ async def _run(config: AppConfig) -> None:
                 await self.add_cog(StatusCog(client))
                 await self.add_cog(JobsCog(client))
                 await self.add_cog(DeleteCog(client))
+                await self.add_cog(DiscoverCog(client, config))
                 self.tree.copy_global_to(guild=guild)
                 synced = await self.tree.sync(guild=guild)
                 logger.info(
