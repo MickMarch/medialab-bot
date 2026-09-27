@@ -145,7 +145,9 @@ class TorrentSelectMenu(discord.ui.View):
             return
 
         await interaction.response.defer(ephemeral=True)
-        response = await self._client.download(result.file_url, self._media_type, self._tmdb_id)
+        response = await self._client.download(
+            result.file_url, self._media_type, self._tmdb_id, result.file_name
+        )
         if response is None:
             await interaction.followup.send(
                 "Download request failed. Please try again.",

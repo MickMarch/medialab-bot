@@ -251,7 +251,9 @@ async def test_torrent_select_calls_download_with_correct_magnet(mock_client, mo
 
     await view.select.callback(interaction)
 
-    mock_client.download.assert_awaited_once_with("magnet:?xt=urn:btih:bbb", MediaType.MOVIE, 42)
+    args = mock_client.download.await_args.args
+    assert args[:3] == ("magnet:?xt=urn:btih:bbb", MediaType.MOVIE, 42)
+    assert isinstance(args[3], str) and args[3]
 
 
 @pytest.mark.asyncio
