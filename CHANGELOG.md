@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Download sends the picked torrent's name, so `/jobs` and `/delete` show it
+  while the download runs.
+
 ## [2.9.0] - 2026-09-26
 
 ### Changed
