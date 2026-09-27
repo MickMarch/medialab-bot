@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from medialab_contracts import MediaType
+from medialab_contracts import MediaType, PosterSize, poster_url
 
 from medialab_bot.cogs.search import SearchCog
 from medialab_bot.schemas.downloads import DownloadResponse
@@ -455,3 +455,48 @@ async def test_typed_query_is_sent_as_alt_query(mock_client, mock_config):
         episode=None,
         alt_query="the mummy 2026",
     )
+
+
+def _embeds_sent(interaction) -> list:
+    return [
+        c.kwargs["embed"]
+        for c in interaction.edit_original_response.call_args_list
+        if c.kwargs.get("embed") is not None
+    ]
+
+
+@pytest.mark.asyncio
+async def test_tmdb_select_shows_poster_thumbnail(mock_client, mock_config):
+    result = _make_tmdb_result(tmdb_id=42, title="Dune", year="2021").model_copy(
+        update={"poster_path": "/dune.jpg"}
+    )
+    mock_client.search_torrents = AsyncMock(
+        return_value=_make_torrent_response({"1080p": [_make_torrent_result()]})
+    )
+    view = _tmdb_view([result], mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["42:movie"]})
+
+    await view.select.callback(interaction)
+
+    embeds = _embeds_sent(interaction)
+    assert embeds
+    assert embeds[0].thumbnail.url == poster_url("/dune.jpg", PosterSize.THUMBNAIL)
+    assert embeds[0].title == "Dune (2021)"
+
+
+@pytest.mark.asyncio
+async def test_tmdb_select_without_poster_has_no_thumbnail(mock_client, mock_config):
+    result = _make_tmdb_result(tmdb_id=42, title="Dune", year="2021")
+    mock_client.search_torrents = AsyncMock(
+        return_value=_make_torrent_response({"1080p": [_make_torrent_result()]})
+    )
+    view = _tmdb_view([result], mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["42:movie"]})
+
+    await view.select.callback(interaction)
+
+    embeds = _embeds_sent(interaction)
+    assert embeds
+    assert embeds[0].thumbnail.url is None

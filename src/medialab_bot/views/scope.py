@@ -186,3 +186,51 @@ class EpisodeScopeSelectMenu(discord.ui.View):
             episode=episode,
             typed_query=self._typed_query,
         )
+
+
+_SEASONS_KEY = "seasons"
+
+
+async def prompt_show_scope(
+    interaction: discord.Interaction,
+    client: OrchestratorClient,
+    *,
+    title: str,
+    year: str,
+    tmdb_id: int,
+    results_per_resolution: int,
+    typed_query: str | None = None,
+) -> None:
+    """Shows the season scope picker for a show; the interaction must already be deferred.
+
+    With no season list it falls back to a whole-series search rather than dead-ending.
+    """
+    detail = await client.search_tmdb_show(tmdb_id)
+    seasons = (detail.data or {}).get(_SEASONS_KEY, []) if detail is not None else []
+
+    if not seasons:
+        await run_torrent_search(
+            interaction,
+            client,
+            title=title,
+            year=year,
+            media_type=MediaType.SHOW,
+            tmdb_id=tmdb_id,
+            results_per_resolution=results_per_resolution,
+            typed_query=typed_query,
+        )
+        return
+
+    view = SeasonScopeSelectMenu(
+        client=client,
+        seasons=seasons,
+        title=title,
+        year=year,
+        tmdb_id=tmdb_id,
+        results_per_resolution=results_per_resolution,
+        typed_query=typed_query,
+    )
+    await interaction.edit_original_response(
+        content=f"Choose a download scope for **{title} ({year})**:",
+        view=view,
+    )

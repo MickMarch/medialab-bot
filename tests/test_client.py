@@ -2,7 +2,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from medialab_contracts import MediaType
+from medialab_contracts import (
+    DiscoverResponse,
+    GenresResponse,
+    MediaType,
+    WishlistAddRequest,
+    WishlistItem,
+    WishlistResponse,
+)
 
 from medialab_bot.client import OrchestratorClient
 from medialab_bot.schemas.actions import ActionResponse
@@ -360,3 +367,127 @@ async def test_download_sends_release_name(client):
     ) as mock_post:
         await client.download("magnet:?xt=urn:btih:abc", MediaType.MOVIE, 1, "Dune.2021-GRP")
     assert mock_post.call_args.kwargs["json"]["release_name"] == "Dune.2021-GRP"
+
+
+# --- discover and wishlist ---
+
+_DISCOVER = {
+    "items": [{"tmdb_id": 1, "media_type": "movie", "title": "Dune", "year": "2021"}],
+    "page": 1,
+    "total_pages": 3,
+    "cached_at": "2026-09-27T00:00:00+00:00",
+}
+_WISHLIST_ITEM = {
+    "tmdb_id": 1,
+    "media_type": "movie",
+    "title": "Dune",
+    "year": "2021",
+    "added_at": "2026-09-27T00:00:00+00:00",
+}
+
+
+@pytest.mark.asyncio
+async def test_discover_passes_genre_and_page(client):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, _DISCOVER))
+    ) as mock_get:
+        response = await client.discover(MediaType.SHOW, genre=18, page=2)
+    assert mock_get.call_args.args[0].endswith("/discover/show")
+    assert mock_get.call_args.kwargs["params"] == {"genre": 18, "page": 2}
+    assert isinstance(response, DiscoverResponse)
+    assert response.items[0].title == "Dune"
+
+
+@pytest.mark.asyncio
+async def test_discover_omits_unset_params(client):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, _DISCOVER))
+    ) as mock_get:
+        await client.discover(MediaType.MOVIE)
+    assert mock_get.call_args.args[0].endswith("/discover/movie")
+    assert mock_get.call_args.kwargs["params"] == {}
+
+
+@pytest.mark.asyncio
+async def test_discover_returns_none_when_tmdb_unavailable(client):
+    payload = {"status": "error", "code": "TMDB_UNAVAILABLE", "detail": "down"}
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(503, payload))
+    ):
+        assert await client.discover(MediaType.MOVIE) is None
+
+
+@pytest.mark.asyncio
+async def test_discover_genres_parses(client):
+    payload = {"genres": [{"id": 28, "name": "Action"}]}
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ) as mock_get:
+        response = await client.discover_genres(MediaType.SHOW)
+    assert mock_get.call_args.args[0].endswith("/discover/show/genres")
+    assert isinstance(response, GenresResponse)
+    assert response.genres[0].name == "Action"
+
+
+@pytest.mark.asyncio
+async def test_list_wishlist_filters_by_media_type(client):
+    payload = {"items": [_WISHLIST_ITEM]}
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, payload))
+    ) as mock_get:
+        response = await client.list_wishlist(MediaType.MOVIE)
+    assert mock_get.call_args.args[0].endswith("/wishlist")
+    assert mock_get.call_args.kwargs["params"] == {"media_type": "movie"}
+    assert isinstance(response, WishlistResponse)
+    assert response.items[0].tmdb_id == 1
+
+
+@pytest.mark.asyncio
+async def test_list_wishlist_without_filter(client):
+    with patch.object(
+        client._http, "get", new=AsyncMock(return_value=_mock_response(200, {"items": []}))
+    ) as mock_get:
+        await client.list_wishlist()
+    assert mock_get.call_args.kwargs["params"] == {}
+
+
+@pytest.mark.asyncio
+async def test_add_to_wishlist_puts_body(client):
+    body = WishlistAddRequest(title="Dune", year="2021", poster_path="/p.jpg", overview="Sand.")
+    with patch.object(
+        client._http, "put", new=AsyncMock(return_value=_mock_response(200, _WISHLIST_ITEM))
+    ) as mock_put:
+        item = await client.add_to_wishlist(MediaType.MOVIE, 1, body)
+    assert mock_put.call_args.args[0].endswith("/wishlist/movie/1")
+    assert mock_put.call_args.kwargs["json"] == body.model_dump(mode="json")
+    assert isinstance(item, WishlistItem)
+
+
+@pytest.mark.asyncio
+async def test_add_to_wishlist_returns_none_on_error(client):
+    body = WishlistAddRequest(title="Dune")
+    with patch.object(client._http, "put", new=AsyncMock(return_value=_mock_response(500))):
+        assert await client.add_to_wishlist(MediaType.MOVIE, 1, body) is None
+
+
+@pytest.mark.asyncio
+async def test_remove_from_wishlist_true_on_204(client):
+    with patch.object(
+        client._http, "delete", new=AsyncMock(return_value=_mock_response(204))
+    ) as mock_delete:
+        assert await client.remove_from_wishlist(MediaType.SHOW, 7) is True
+    assert mock_delete.call_args.args[0].endswith("/wishlist/show/7")
+
+
+@pytest.mark.asyncio
+async def test_remove_from_wishlist_false_on_error(client):
+    with patch.object(client._http, "delete", new=AsyncMock(return_value=_mock_response(500))):
+        assert await client.remove_from_wishlist(MediaType.SHOW, 7) is False
+
+
+@pytest.mark.asyncio
+async def test_remove_from_wishlist_false_on_network_error(client):
+    with patch.object(
+        client._http, "delete", new=AsyncMock(side_effect=httpx.ConnectError("boom"))
+    ):
+        assert await client.remove_from_wishlist(MediaType.SHOW, 7) is False

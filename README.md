@@ -38,7 +38,9 @@ The bot runs as a container from the workspace `docker-compose.yml`; see the
 
 | Command | Description | Gateway routes used |
 |---|---|---|
-| `/search <query>` | TMDB search, then title -> (season/episode scope for shows) -> torrent pick -> download. The only download path. | `GET /search/tmdb`, `GET /search/tmdb/{movie\|show}/{id}`, `GET /search/torrents`, `POST /download` |
+| `/search <query>` | TMDB search, then title (shown with its poster) -> (season/episode scope for shows) -> torrent pick -> download. The only download path. | `GET /search/tmdb`, `GET /search/tmdb/{movie\|show}/{id}`, `GET /search/torrents`, `POST /download` |
+| `/popular type:<movie\|show> [genre]` | Trending titles (top `SELECT_MAX_RESULTS`, `title (year) - rating`, marked when already in Jellyfin), optionally narrowed to one genre (autocompleted). Pick one to see its poster and overview, then **Download** (same scope and torrent steps as `/search`) or **Wishlist** / **Remove**. Ephemeral. | `GET /discover/{movie\|show}`, `GET /discover/{movie\|show}/genres`, `PUT /wishlist/{movie\|show}/{id}`, `DELETE /wishlist/{movie\|show}/{id}` |
+| `/wishlist` | The shared wishlist (also edited from the web UI). Pick a title for **Download** or **Remove**. Ephemeral. | `GET /wishlist`, `PUT /wishlist/{movie\|show}/{id}`, `DELETE /wishlist/{movie\|show}/{id}` |
 | `/transfers` | Live transfers merged with pipeline job rows. | `GET /transfers` |
 | `/jobs [status]` | Pipeline lifecycle view with a retry control for `FAILED` and `NEEDS_ATTENTION` jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
 | `/storage` | Disk usage. | `GET /storage` |
@@ -49,7 +51,7 @@ All routes are under `/api/v1` on the orchestrator. Rate-limit `429`s carry
 `Retry-After` and are surfaced to the user. Startup logs the gateway's
 aggregated health (`GET /health`).
 
-Deferred: `/trending` and `/similar` (await TMDB passthroughs on the gateway);
+Deferred: `/similar` (awaits a TMDB passthrough on the gateway);
 `/torrent` raw search without TMDB (tracked as
 [MickMarch/medialab#26](https://github.com/MickMarch/medialab/issues/26)).
 

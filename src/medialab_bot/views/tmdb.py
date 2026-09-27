@@ -3,12 +3,11 @@ from medialab_contracts import MediaType
 
 from medialab_bot.client import OrchestratorClient
 from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+from medialab_bot.embeds import title_embed
 from medialab_bot.media import from_tmdb_media_type
 from medialab_bot.schemas.tmdb import TmdbSearchResult
-from medialab_bot.views.scope import SeasonScopeSelectMenu
+from medialab_bot.views.scope import prompt_show_scope
 from medialab_bot.views.torrent import run_torrent_search
-
-_SEASONS_KEY = "seasons"
 
 
 class TmdbSelectMenu(discord.ui.View):
@@ -63,6 +62,11 @@ class TmdbSelectMenu(discord.ui.View):
             return
 
         await interaction.response.defer(ephemeral=True)
+        await interaction.edit_original_response(
+            embed=title_embed(
+                result.title, result.year, overview=result.overview, poster_path=result.poster_path
+            )
+        )
 
         if media_type is MediaType.SHOW:
             await self._prompt_show_scope(interaction, result)
@@ -82,33 +86,12 @@ class TmdbSelectMenu(discord.ui.View):
     async def _prompt_show_scope(
         self, interaction: discord.Interaction, result: TmdbSearchResult
     ) -> None:
-        detail = await self._client.search_tmdb_show(result.tmdb_id)
-        seasons = (detail.data or {}).get(_SEASONS_KEY, []) if detail is not None else []
-
-        if not seasons:
-            # No season list - fall back to a whole-series search rather than dead-ending.
-            await run_torrent_search(
-                interaction,
-                self._client,
-                title=result.title,
-                year=result.year,
-                media_type=MediaType.SHOW,
-                tmdb_id=result.tmdb_id,
-                results_per_resolution=self._results_per_resolution,
-                typed_query=self._typed_query,
-            )
-            return
-
-        view = SeasonScopeSelectMenu(
-            client=self._client,
-            seasons=seasons,
+        await prompt_show_scope(
+            interaction,
+            self._client,
             title=result.title,
             year=result.year,
             tmdb_id=result.tmdb_id,
             results_per_resolution=self._results_per_resolution,
             typed_query=self._typed_query,
-        )
-        await interaction.edit_original_response(
-            content=f"Choose a download scope for **{result.title} ({result.year})**:",
-            view=view,
         )

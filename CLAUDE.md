@@ -55,20 +55,22 @@ src/medialab_bot/
 ├── startup.py     bounded retry with backoff around the Discord login
 ├── media.py       TMDB media type -> contracts MediaType
 ├── client/        OrchestratorClient as mixins: _base (GET/POST/parse), _tmdb,
-│                  _torrents (search + download), _status (health/transfers/storage), _jobs
+│                  _torrents (search + download), _status (health/transfers/storage), _jobs,
+│                  _discover (discover, genres, wishlist)
 ├── schemas/       tmdb, torrents, transfers, jobs, system, downloads, actions, deletion, errors
 ├── cogs/          search (/search), status (/transfers, /storage, /stop-seeding), jobs (/jobs),
-│                delete (/delete)
+│                delete (/delete), discover (/popular, /wishlist)
 ├── views/         tmdb (TmdbSelectMenu), scope (season/episode pickers),
 │                  torrent (TorrentSelectMenu + run_torrent_search), jobs (JobRetryView),
-│                  delete (DeleteSelectView -> DeleteConfirmView)
+│                  delete (DeleteSelectView -> DeleteConfirmView),
+│                  discover (TitlePickView -> TitleActionView)
 └── embeds.py      embed builders
 
 tests/
 ├── conftest.py    mock client + mock interactions
 ├── helpers.py
 ├── test_client.py test_schemas.py test_embeds.py test_media.py
-└── cogs/          test_search, test_scope, test_status, test_jobs
+└── cogs/          test_search, test_scope, test_status, test_jobs, test_delete, test_discover
 ```
 
 ## Testing patterns
