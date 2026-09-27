@@ -262,6 +262,10 @@ async def test_torrent_select_calls_download_with_correct_magnet(mock_client, mo
     args = mock_client.download.await_args.args
     assert args[:3] == ("magnet:?xt=urn:btih:bbb", MediaType.MOVIE, 42)
     assert isinstance(args[3], str) and args[3]
+    # A movie has no scope; the gateway treats absent season/episode as none.
+    kwargs = mock_client.download.await_args.kwargs
+    assert kwargs.get("season") is None
+    assert kwargs.get("episode") is None
 
 
 @pytest.mark.asyncio

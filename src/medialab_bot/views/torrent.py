@@ -57,6 +57,8 @@ async def run_torrent_search(
             results_per_resolution,
             media_type=media_type,
             tmdb_id=tmdb_id,
+            season=season,
+            episode=episode,
         )
     except ValueError:
         await interaction.edit_original_response(
@@ -95,12 +97,17 @@ class TorrentSelectMenu(discord.ui.View):
         results_per_resolution: int,
         media_type: MediaType,
         tmdb_id: int,
+        season: int | None = None,
+        episode: int | None = None,
     ) -> None:
         super().__init__()
         self._client = client
         # Threaded from the TMDB pick: the gateway requires both at download.
         self._media_type = media_type
         self._tmdb_id = tmdb_id
+        # The scope the torrent search ran with, recorded on the job.
+        self._season = season
+        self._episode = episode
         self._indexed: dict[str, TorrentResult] = {}
 
         options: list[discord.SelectOption] = []
@@ -146,7 +153,12 @@ class TorrentSelectMenu(discord.ui.View):
 
         await interaction.response.defer(ephemeral=True)
         response = await self._client.download(
-            result.file_url, self._media_type, self._tmdb_id, result.file_name
+            result.file_url,
+            self._media_type,
+            self._tmdb_id,
+            result.file_name,
+            season=self._season,
+            episode=self._episode,
         )
         if response is None:
             await interaction.followup.send(

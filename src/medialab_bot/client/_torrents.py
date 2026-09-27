@@ -36,18 +36,27 @@ class _TorrentsMixin(_BaseClient):
         media_type: MediaType,
         tmdb_id: int,
         release_name: str = "",
+        *,
+        season: int | None = None,
+        episode: int | None = None,
     ) -> DownloadResponse | None:
         # source_url is whatever the picked result carried - a magnet or an http
         # .torrent URL. The gateway resolves placement and fans out; it requires
-        # media_type + tmdb_id (no title guessing).
+        # media_type + tmdb_id (no title guessing). The scope the search ran with
+        # is recorded on the job; a whole-series or movie job sends neither key.
+        body: dict[str, str | int] = {
+            "source_url": source_url,
+            "media_type": media_type.value,
+            "tmdb_id": tmdb_id,
+            "release_name": release_name,
+        }
+        if season is not None:
+            body["season"] = season
+        if episode is not None:
+            body["episode"] = episode
         data = await self._post(
             f"{API_PREFIX}/download",
-            json={
-                "source_url": source_url,
-                "media_type": media_type.value,
-                "tmdb_id": tmdb_id,
-                "release_name": release_name,
-            },
+            json=body,
             expected_status=_DOWNLOAD_ACCEPTED,
         )
         return self._parse(DownloadResponse, data)

@@ -185,3 +185,57 @@ class TestEpisodeScopeSelection:
 
         forwarded = interaction.edit_original_response.call_args_list[-1].kwargs["view"]
         assert isinstance(forwarded, TorrentSelectMenu)
+
+
+async def _pick_torrent(interaction, mock_client) -> None:
+    """Selects the single torrent from the picker the scope flow forwarded."""
+    forwarded = interaction.edit_original_response.call_args_list[-1].kwargs["view"]
+    assert isinstance(forwarded, TorrentSelectMenu)
+    mock_client.download = AsyncMock(return_value=None)
+    pick = make_interaction()
+    pick.configure_mock(data={"values": ["1080p:0"]})
+    await forwarded.select.callback(pick)
+
+
+class TestDownloadScope:
+    @pytest.mark.asyncio
+    async def test_episode_pick_downloads_with_season_and_episode(self, mock_client):
+        mock_client.search_torrents = AsyncMock(return_value=_torrent_response())
+        view = _episode_view(mock_client)
+        interaction = make_interaction()
+        interaction.configure_mock(data={"values": ["e:5"]})
+
+        await view.select.callback(interaction)
+        await _pick_torrent(interaction, mock_client)
+
+        kwargs = mock_client.download.await_args.kwargs
+        assert kwargs.get("season") == 2
+        assert kwargs.get("episode") == 5
+
+    @pytest.mark.asyncio
+    async def test_whole_season_downloads_with_season_only(self, mock_client):
+        mock_client.search_torrents = AsyncMock(return_value=_torrent_response())
+        view = _episode_view(mock_client)
+        interaction = make_interaction()
+        interaction.configure_mock(data={"values": ["season"]})
+
+        await view.select.callback(interaction)
+        await _pick_torrent(interaction, mock_client)
+
+        kwargs = mock_client.download.await_args.kwargs
+        assert kwargs.get("season") == 2
+        assert kwargs.get("episode") is None
+
+    @pytest.mark.asyncio
+    async def test_whole_series_downloads_without_scope(self, mock_client):
+        mock_client.search_torrents = AsyncMock(return_value=_torrent_response())
+        view = _season_view(mock_client)
+        interaction = make_interaction()
+        interaction.configure_mock(data={"values": ["all"]})
+
+        await view.select.callback(interaction)
+        await _pick_torrent(interaction, mock_client)
+
+        kwargs = mock_client.download.await_args.kwargs
+        assert kwargs.get("season") is None
+        assert kwargs.get("episode") is None
