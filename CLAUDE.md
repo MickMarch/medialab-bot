@@ -51,7 +51,7 @@ src/medialab_bot/
 ├── main.py        entrypoint, cog registration, startup health log
 ├── config.py      AppConfig (pydantic-settings)
 ├── constants.py   Discord limits and other named values
-├── format.py      presentation helpers (human-readable sizes)
+├── format.py      presentation helpers (sizes, ETA, progress bar)
 ├── startup.py     bounded retry with backoff around the Discord login
 ├── media.py       TMDB media type -> contracts MediaType
 ├── client/        OrchestratorClient as mixins: _base (GET/POST/parse), _tmdb,

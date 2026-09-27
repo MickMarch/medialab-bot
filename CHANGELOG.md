@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `/jobs`: jobs qBittorrent is fetching show a fixed-width text progress bar
+  with percent and ETA (`12m`, `3h 05m`, `2d 4h`; `-` when unknown).
+- `/search`, `/popular` and `/wishlist` mark titles already on the wishlist
+  (`wishlisted`); `/search` options also mark titles `in Jellyfin`.
+
+### Changed
+
+- medialab-contracts pin bumped to v0.10.0 (`JobProgress`).
+
 ## [2.11.0] - 2026-09-27
 
 ### Added

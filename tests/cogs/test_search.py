@@ -4,6 +4,7 @@ import pytest
 from medialab_contracts import MediaType, PosterSize, poster_url
 
 from medialab_bot.cogs.search import SearchCog
+from medialab_bot.constants import IN_LIBRARY_MARKER, WISHLIST_MARKER
 from medialab_bot.schemas.downloads import DownloadResponse
 from medialab_bot.schemas.jobs import JobView
 from medialab_bot.schemas.tmdb import TmdbSearchResponse, TmdbSearchResult
@@ -25,7 +26,12 @@ _JOB = JobView(
 
 
 def _make_tmdb_result(
-    tmdb_id: int = 1, title: str = "Test Movie", year: str = "2024", media_type: str = "movie"
+    tmdb_id: int = 1,
+    title: str = "Test Movie",
+    year: str = "2024",
+    media_type: str = "movie",
+    on_wishlist: bool = False,
+    in_library: bool = False,
 ) -> TmdbSearchResult:
     return TmdbSearchResult(
         tmdb_id=tmdb_id,
@@ -35,6 +41,8 @@ def _make_tmdb_result(
         overview="Overview.",
         vote_average=7.0,
         poster_path=None,
+        on_wishlist=on_wishlist,
+        in_library=in_library,
     )
 
 
@@ -500,3 +508,36 @@ async def test_tmdb_select_without_poster_has_no_thumbnail(mock_client, mock_con
     embeds = _embeds_sent(interaction)
     assert embeds
     assert embeds[0].thumbnail.url is None
+
+
+def test_tmdb_select_description_marks_wishlisted_and_in_library(mock_client, mock_config):
+    results = [
+        _make_tmdb_result(1, "Plain"),
+        _make_tmdb_result(2, "Wished", on_wishlist=True),
+        _make_tmdb_result(3, "Owned", in_library=True),
+    ]
+    plain, wished, owned = (
+        o.description or "" for o in _tmdb_view(results, mock_client, mock_config).select.options
+    )
+    assert WISHLIST_MARKER not in plain
+    assert IN_LIBRARY_MARKER not in plain
+    assert WISHLIST_MARKER in wished
+    assert IN_LIBRARY_MARKER not in wished
+    assert IN_LIBRARY_MARKER in owned
+    assert WISHLIST_MARKER not in owned
+
+
+def test_tmdb_result_markers_default_false():
+    result = TmdbSearchResult.model_validate(
+        {
+            "tmdb_id": 1,
+            "title": "T",
+            "year": "2024",
+            "media_type": "movie",
+            "overview": "",
+            "vote_average": 1.0,
+            "poster_path": None,
+        }
+    )
+    assert result.on_wishlist is False
+    assert result.in_library is False
