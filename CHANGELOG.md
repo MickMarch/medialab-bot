@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-09-27
+
 ### Changed
 
 - Picking a torrent sends the season and episode the search was scoped with
