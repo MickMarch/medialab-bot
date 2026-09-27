@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-09-27
+
 ### Added
 
 - Title cards for shows gain **Follow** / **Unfollow**: one tap follows the
