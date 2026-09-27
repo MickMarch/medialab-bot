@@ -38,11 +38,11 @@ The bot runs as a container from the workspace `docker-compose.yml`; see the
 
 | Command | Description | Gateway routes used |
 |---|---|---|
-| `/search <query>` | TMDB search, then title (shown with its poster) -> (season/episode scope for shows) -> torrent pick -> download. The only download path. | `GET /search/tmdb`, `GET /search/tmdb/{movie\|show}/{id}`, `GET /search/torrents`, `POST /download` |
-| `/popular type:<movie\|show> [genre]` | Trending titles (top `SELECT_MAX_RESULTS`, `title (year) - rating`, marked when already in Jellyfin), optionally narrowed to one genre (autocompleted). Pick one to see its poster and overview, then **Download** (same scope and torrent steps as `/search`) or **Wishlist** / **Remove**. Ephemeral. | `GET /discover/{movie\|show}`, `GET /discover/{movie\|show}/genres`, `PUT /wishlist/{movie\|show}/{id}`, `DELETE /wishlist/{movie\|show}/{id}` |
+| `/search <query>` | TMDB search (options marked `in Jellyfin` / `wishlisted`), then title (shown with its poster) -> (season/episode scope for shows) -> torrent pick -> download. The only download path. | `GET /search/tmdb`, `GET /search/tmdb/{movie\|show}/{id}`, `GET /search/torrents`, `POST /download` |
+| `/popular type:<movie\|show> [genre]` | Trending titles (top `SELECT_MAX_RESULTS`, `title (year) - rating`, marked `in Jellyfin` / `wishlisted`), optionally narrowed to one genre (autocompleted). Pick one to see its poster and overview, then **Download** (same scope and torrent steps as `/search`) or **Wishlist** / **Remove**. Ephemeral. | `GET /discover/{movie\|show}`, `GET /discover/{movie\|show}/genres`, `PUT /wishlist/{movie\|show}/{id}`, `DELETE /wishlist/{movie\|show}/{id}` |
 | `/wishlist` | The shared wishlist (also edited from the web UI). Pick a title for **Download** or **Remove**. Ephemeral. | `GET /wishlist`, `PUT /wishlist/{movie\|show}/{id}`, `DELETE /wishlist/{movie\|show}/{id}` |
 | `/transfers` | Live transfers merged with pipeline job rows. | `GET /transfers` |
-| `/jobs [status]` | Pipeline lifecycle view with a retry control for `FAILED` and `NEEDS_ATTENTION` jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
+| `/jobs [status]` | Pipeline lifecycle view; downloading jobs show a text progress bar with percent and ETA. Retry control for `FAILED` and `NEEDS_ATTENTION` jobs. | `GET /jobs`, `POST /jobs/{id}/retry` |
 | `/storage` | Disk usage. | `GET /storage` |
 | `/delete` | Undo a download at any stage. Three steps: pick it (`Title (Year)`, then status, date and release name so copies differ), review the exact paths, press the red Delete button (60 s). Nothing is touched before that button. Ephemeral. | `GET /jobs`, `GET /jobs/{id}/deletion-plan`, `DELETE /jobs/{id}` |
 | `/stop-seeding` | Pause every completed (seeding) torrent; downloads untouched. Ephemeral. | `POST /transfers/stop-seeding` |

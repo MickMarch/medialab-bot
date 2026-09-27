@@ -2,12 +2,27 @@ import discord
 from medialab_contracts import MediaType
 
 from medialab_bot.client import OrchestratorClient
-from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+from medialab_bot.constants import (
+    DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH,
+    IN_LIBRARY_MARKER,
+    WISHLIST_MARKER,
+)
 from medialab_bot.embeds import title_embed
 from medialab_bot.media import from_tmdb_media_type
 from medialab_bot.schemas.tmdb import TmdbSearchResult
 from medialab_bot.views.scope import prompt_show_scope
 from medialab_bot.views.torrent import run_torrent_search
+
+_SEPARATOR = " - "
+
+
+def _description(result: TmdbSearchResult) -> str:
+    parts = [result.media_type, f"⭐ {result.vote_average}"]
+    if result.in_library:
+        parts.append(IN_LIBRARY_MARKER)
+    if result.on_wishlist:
+        parts.append(WISHLIST_MARKER)
+    return _SEPARATOR.join(parts)[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH]
 
 
 class TmdbSelectMenu(discord.ui.View):
@@ -31,9 +46,7 @@ class TmdbSelectMenu(discord.ui.View):
             discord.SelectOption(
                 label=f"{r.title} ({r.year})"[:DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH],
                 value=f"{r.tmdb_id}:{r.media_type}",
-                description=f"{r.media_type} - ⭐ {r.vote_average}"[
-                    :DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
-                ],
+                description=_description(r),
             )
             for r in top_results
         ]

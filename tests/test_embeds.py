@@ -1,6 +1,7 @@
-from medialab_contracts import MediaType, TransferInfo
+from medialab_contracts import JobProgress, MediaType, TransferInfo
 
 from medialab_bot.embeds import jobs_embed, storage_embed, transfers_embed
+from medialab_bot.format import PROGRESS_BAR_EMPTY, PROGRESS_BAR_FILLED
 from medialab_bot.schemas.jobs import JobsResponse, JobView
 from medialab_bot.schemas.system import DiskUsageResponse
 from medialab_bot.schemas.transfers import MergedTransfersResponse
@@ -83,6 +84,38 @@ def test_jobs_embed_shows_status_and_error():
     field = jobs_embed(response).fields[0]
     assert "FAILED" in (field.value or "")
     assert "no season" in (field.value or "")
+
+
+def _progress(progress: float = 0.42, eta_seconds: int | None = 12 * 60) -> JobProgress:
+    return JobProgress(
+        progress=progress, download_speed=3_100_000, eta_seconds=eta_seconds, state="downloading"
+    )
+
+
+def test_jobs_embed_active_job_shows_bar_percent_and_eta():
+    response = JobsResponse(status="success", jobs=[_make_job(progress=_progress())])
+    value = jobs_embed(response).fields[0].value or ""
+    assert PROGRESS_BAR_FILLED in value
+    assert PROGRESS_BAR_EMPTY in value
+    assert "42% - ETA 12m" in value
+
+
+def test_jobs_embed_unknown_eta_shows_dash():
+    response = JobsResponse(
+        status="success", jobs=[_make_job(progress=_progress(eta_seconds=None))]
+    )
+    assert "42% - ETA -" in (jobs_embed(response).fields[0].value or "")
+
+
+def test_jobs_embed_job_without_progress_has_no_bar():
+    response = JobsResponse(
+        status="success",
+        jobs=[_make_job(progress=_progress()), _make_job(id="job-def", status="DONE")],
+    )
+    value = jobs_embed(response).fields[1].value or ""
+    assert PROGRESS_BAR_FILLED not in value
+    assert PROGRESS_BAR_EMPTY not in value
+    assert "ETA" not in value
 
 
 # --- storage_embed ---

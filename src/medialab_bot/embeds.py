@@ -2,6 +2,7 @@ import discord
 from medialab_contracts import PosterSize, poster_url
 
 from medialab_bot.constants import DISCORD_EMBED_MAX_FIELDS
+from medialab_bot.format import format_progress
 from medialab_bot.schemas.jobs import JobsResponse
 from medialab_bot.schemas.system import DiskUsageResponse
 from medialab_bot.schemas.transfers import MergedTransfersResponse
@@ -44,6 +45,8 @@ def jobs_embed(response: JobsResponse) -> discord.Embed:
         line = f"**{job.status}**"
         if job.last_error:
             line += f" - {job.last_error}"
+        if job.progress is not None:
+            line += f"\n{format_progress(job.progress.progress, job.progress.eta_seconds)}"
         embed.add_field(
             name=f"{title} ({job.media_type.value})",
             value=f"{line}\nhash `{job.torrent_hash}`",

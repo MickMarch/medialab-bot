@@ -18,7 +18,7 @@ from medialab_contracts import (
 )
 
 from medialab_bot.cogs.discover import DiscoverCog
-from medialab_bot.constants import DISCORD_AUTOCOMPLETE_MAX_CHOICES
+from medialab_bot.constants import DISCORD_AUTOCOMPLETE_MAX_CHOICES, WISHLIST_MARKER
 from medialab_bot.views.discover import (
     WISHLIST_ADD_LABEL,
     WISHLIST_REMOVE_LABEL,
@@ -116,6 +116,24 @@ async def test_popular_lists_titles_with_rating_and_library_marker(mock_client, 
     assert lines[0].startswith("Dune (2021) - 7.8")
     assert "in Jellyfin" in lines[0]
     assert "in Jellyfin" not in lines[1]
+
+
+@pytest.mark.asyncio
+async def test_popular_marks_wishlisted_titles_in_list_and_select(mock_client, mock_config):
+    items = [_item(1, "Dune", on_wishlist=True), _item(2, "Arrival")]
+    mock_client.discover = AsyncMock(return_value=_discover(items))
+    cog = DiscoverCog(mock_client, mock_config)
+    interaction = make_interaction()
+
+    await cog.popular.callback(cog, interaction, media_type=_MOVIE, genre=None)
+
+    kwargs = _sent_kwargs(interaction)
+    lines = kwargs["embed"].description.splitlines()
+    assert WISHLIST_MARKER in lines[0]
+    assert WISHLIST_MARKER not in lines[1]
+    options = kwargs["view"].select.options
+    assert WISHLIST_MARKER in (options[0].description or "")
+    assert WISHLIST_MARKER not in (options[1].description or "")
 
 
 @pytest.mark.asyncio
@@ -382,6 +400,8 @@ async def test_wishlist_lists_items_with_select(mock_client, mock_config):
     assert isinstance(kwargs["view"], TitlePickView)
     assert len(kwargs["view"].select.options) == 2
     assert len(kwargs["embed"].description.splitlines()) == 2
+    assert all(WISHLIST_MARKER not in line for line in kwargs["embed"].description.splitlines())
+    assert all(WISHLIST_MARKER not in (o.description or "") for o in kwargs["view"].select.options)
 
 
 @pytest.mark.asyncio

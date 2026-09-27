@@ -12,6 +12,8 @@ from medialab_bot.client import OrchestratorClient
 from medialab_bot.constants import (
     DISCORD_SELECT_MAX_OPTIONS,
     DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH,
+    IN_LIBRARY_MARKER,
+    WISHLIST_MARKER,
 )
 from medialab_bot.embeds import display_title, title_embed
 from medialab_bot.views.scope import prompt_show_scope
@@ -22,7 +24,6 @@ type ListedTitle = DiscoverItem | WishlistItem
 DOWNLOAD_LABEL = "Download"
 WISHLIST_ADD_LABEL = "Wishlist"
 WISHLIST_REMOVE_LABEL = "Remove"
-IN_LIBRARY_MARKER = "in Jellyfin"
 _SEPARATOR = " - "
 _VALUE_SEPARATOR = ":"
 _SELECTION_ERROR = "Something went wrong with your selection. Please try again."
@@ -48,11 +49,14 @@ def _annotations(item: ListedTitle) -> list[str]:
         parts.append(rating)
     if item.in_library:
         parts.append(IN_LIBRARY_MARKER)
+    # Every /wishlist item is on the wishlist; the marker only helps in discover lists.
+    if isinstance(item, DiscoverItem) and item.on_wishlist:
+        parts.append(WISHLIST_MARKER)
     return parts
 
 
 def list_line(item: ListedTitle) -> str:
-    """``Title (year) - rating``, plus the library marker when Jellyfin has it."""
+    """``Title (year) - rating``, plus the library and wishlist markers when they apply."""
     return _SEPARATOR.join([display_title(item.title, item.year), *_annotations(item)])
 
 
