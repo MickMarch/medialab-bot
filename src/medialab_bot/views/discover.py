@@ -49,7 +49,8 @@ def _annotations(item: ListedTitle) -> list[str]:
         parts.append(rating)
     if item.in_library:
         parts.append(IN_LIBRARY_MARKER)
-    if _is_on_wishlist(item):
+    # Every /wishlist item is on the wishlist; the marker only helps in discover lists.
+    if isinstance(item, DiscoverItem) and item.on_wishlist:
         parts.append(WISHLIST_MARKER)
     return parts
 

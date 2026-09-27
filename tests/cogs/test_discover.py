@@ -400,7 +400,8 @@ async def test_wishlist_lists_items_with_select(mock_client, mock_config):
     assert isinstance(kwargs["view"], TitlePickView)
     assert len(kwargs["view"].select.options) == 2
     assert len(kwargs["embed"].description.splitlines()) == 2
-    assert all(WISHLIST_MARKER in line for line in kwargs["embed"].description.splitlines())
+    assert all(WISHLIST_MARKER not in line for line in kwargs["embed"].description.splitlines())
+    assert all(WISHLIST_MARKER not in (o.description or "") for o in kwargs["view"].select.options)
 
 
 @pytest.mark.asyncio
