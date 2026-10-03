@@ -561,3 +561,39 @@ def test_tmdb_result_markers_default_false():
     assert result.on_watchlist is False
     assert result.watchlist_kind is None
     assert result.in_library is False
+
+
+@pytest.mark.asyncio
+async def test_torrent_select_explains_a_failed_download_when_vpn_is_not_bound(
+    mock_client, mock_config
+):
+    groups = {"1080p": [_make_torrent_result(magnet="magnet:?xt=urn:btih:abc")]}
+    mock_client.download = AsyncMock(return_value=None)
+    health = mock_client.health.return_value
+    mock_client.health = AsyncMock(
+        return_value=health.model_copy(update={"vpn_interface_bound": False})
+    )
+    view = _torrent_view(groups, mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["1080p:0"]})
+
+    await view.select.callback(interaction)
+
+    message = interaction.followup.send.call_args.args[0]
+    assert "VPN" in message
+    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+
+
+@pytest.mark.asyncio
+async def test_torrent_select_keeps_the_generic_error_when_vpn_is_bound(mock_client, mock_config):
+    groups = {"1080p": [_make_torrent_result(magnet="magnet:?xt=urn:btih:abc")]}
+    mock_client.download = AsyncMock(return_value=None)
+    view = _torrent_view(groups, mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["1080p:0"]})
+
+    await view.select.callback(interaction)
+
+    message = interaction.followup.send.call_args.args[0]
+    assert "VPN" not in message
+    assert "try again" in message.lower()

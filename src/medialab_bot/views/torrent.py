@@ -89,6 +89,13 @@ def option_description(result: TorrentResult) -> str:
     return _DESCRIPTION_SEPARATOR.join(parts)
 
 
+DOWNLOAD_FAILED_MESSAGE = "Download request failed. Please try again."
+VPN_NOT_BOUND_MESSAGE = (
+    "Download refused: the VPN is not bound, so torrent-downloader will not start "
+    "anything until it is. Check the VPN and try again."
+)
+
+
 class TorrentSelectMenu(discord.ui.View):
     def __init__(
         self,
@@ -161,10 +168,7 @@ class TorrentSelectMenu(discord.ui.View):
             episode=self._episode,
         )
         if response is None:
-            await interaction.followup.send(
-                "Download request failed. Please try again.",
-                ephemeral=True,
-            )
+            await interaction.followup.send(await self._failure_message(), ephemeral=True)
             return
 
         await interaction.followup.send(
@@ -172,3 +176,12 @@ class TorrentSelectMenu(discord.ui.View):
             f"Track it with `/jobs` (job `{response.job.id}`).",
             ephemeral=True,
         )
+
+    async def _failure_message(self) -> str:
+        """Why a download was refused, when the gateway can say: an unbound VPN
+        is the one cause worth naming, since the downloader refuses every
+        download until it is bound again."""
+        health = await self._client.health()
+        if health is not None and not health.vpn_interface_bound:
+            return VPN_NOT_BOUND_MESSAGE
+        return DOWNLOAD_FAILED_MESSAGE

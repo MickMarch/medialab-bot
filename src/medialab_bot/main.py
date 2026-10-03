@@ -29,11 +29,14 @@ async def _run(config: AppConfig) -> None:
             down = health.downstream
             logger.info(
                 "orchestrator healthy (uptime=%.1fs); downstream: "
-                "torrent-downloader=%s, medialab-jellyfin=%s",
+                "torrent-downloader=%s, medialab-jellyfin=%s; vpn=%s",
                 health.uptime_seconds,
                 "up" if down.torrent_downloader else "down",
                 "up" if down.medialab_jellyfin else "down",
+                "bound" if health.vpn_interface_bound else "not bound",
             )
+            if not health.vpn_interface_bound:
+                logger.warning("VPN is not bound; torrent-downloader will refuse downloads")
             if health.needs_attention:
                 logger.warning(
                     "%d job(s) need attention; see /jobs NEEDS_ATTENTION", health.needs_attention

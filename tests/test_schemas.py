@@ -202,3 +202,13 @@ def test_torrent_result_language_fields_parse_wire_names():
     )
     assert result.languages == ["French"]
     assert result.multi_audio is True
+
+
+def test_health_response_vpn_flag_defaults_false_and_parses():
+    base = {
+        "status": "online",
+        "uptime_seconds": 1.0,
+        "downstream": {"torrent_downloader": True, "medialab_jellyfin": True},
+    }
+    assert HealthResponse(**base).vpn_interface_bound is False
+    assert HealthResponse(**base, vpn_interface_bound=True).vpn_interface_bound is True

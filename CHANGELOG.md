@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The startup health line reports whether the VPN is bound, with a warning
+  when it is not. A failed download now says so when the gateway reports the
+  VPN unbound, instead of a generic failure (MickMarch/medialab#114).
+
 ## [2.14.0] - 2026-09-27
 
 ### Added
