@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `/jobs` offers a Dismiss select beside Retry for `FAILED` and `NEEDS_ATTENTION`
+  jobs: one tap closes a job a human judged not worth pursuing, files untouched.
+
 ## [2.15.0] - 2026-10-03
 
 ### Added

@@ -17,6 +17,11 @@ class _JobsMixin(_BaseClient):
         data = await self._post(f"{API_PREFIX}/jobs/{job_id}/retry")
         return self._parse(JobView, data)
 
+    async def dismiss_job(self, job_id: str) -> JobView | None:
+        # Closes a flagged job without touching files; returns the updated job.
+        data = await self._post(f"{API_PREFIX}/jobs/{job_id}/dismiss")
+        return self._parse(JobView, data)
+
     async def deletion_plan(self, job_id: str) -> DeletionPlan | None:
         # Read-only: what a delete would remove, shown before confirming.
         data = await self._get(f"{API_PREFIX}/jobs/{job_id}/deletion-plan")
