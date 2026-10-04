@@ -61,7 +61,8 @@ src/medialab_bot/
 ├── cogs/          search (/search), status (/transfers, /storage, /stop-seeding), jobs (/jobs),
 │                delete (/delete), discover (/popular, /watchlist)
 ├── views/         tmdb (TmdbSelectMenu), scope (season/episode pickers),
-│                  torrent (TorrentSelectMenu + run_torrent_search), jobs (JobRetryView),
+│                  torrent (TorrentSelectMenu + run_torrent_search), jobs (JobRetryView: retry or
+│                  dismiss a flagged job),
 │                  delete (DeleteSelectView -> DeleteConfirmView),
 │                  discover (TitlePickView -> TitleActionView)
 └── embeds.py      embed builders

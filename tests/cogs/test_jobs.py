@@ -160,3 +160,48 @@ async def test_jobs_attaches_retry_view_when_needs_attention_present(mock_client
 
     kwargs = interaction.followup.send.await_args.kwargs
     assert isinstance(kwargs["view"], JobRetryView)
+
+
+# --- Dismiss (second select on the same view) ---
+
+
+@pytest.mark.asyncio
+async def test_retry_view_has_a_dismiss_select_too(mock_client):
+    view = JobRetryView(mock_client, [_make_job(status="NEEDS_ATTENTION")])
+    assert view.dismiss_select in view.children
+    assert view.select in view.children
+    assert "ismiss" in str(view.dismiss_select.placeholder)
+
+
+@pytest.mark.asyncio
+async def test_dismiss_select_calls_client_dismiss_and_reports_status(mock_client):
+    mock_client.dismiss_job = AsyncMock(return_value=_make_job(status="DISMISSED"))
+    view = JobRetryView(mock_client, [_make_job(status="NEEDS_ATTENTION")])
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["job-abc"]})
+
+    await view.dismiss_select.callback(interaction)
+
+    mock_client.dismiss_job.assert_awaited_once_with("job-abc")
+    mock_client.retry_job.assert_not_called()
+    message = interaction.followup.send.await_args.args[0]
+    assert "DISMISSED" in message and "job-abc" in message
+
+
+@pytest.mark.asyncio
+async def test_dismiss_select_handles_failure(mock_client):
+    mock_client.dismiss_job = AsyncMock(return_value=None)
+    view = JobRetryView(mock_client, [_make_job(status="FAILED")])
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["job-abc"]})
+
+    await view.dismiss_select.callback(interaction)
+
+    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    assert "failed" in interaction.followup.send.await_args.args[0].lower()
+
+
+def test_job_view_carries_the_attention_fields():
+    job = _make_job(status="NEEDS_ATTENTION", attention_cause="TORRENT_GONE", dismissed_at=None)
+    assert job.attention_cause == "TORRENT_GONE"
+    assert job.dismissed_at is None
