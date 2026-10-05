@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.0] - 2026-10-05
+
 ### Added
 
 - `/settings show`, `/settings set <service> <key> <value>` and
