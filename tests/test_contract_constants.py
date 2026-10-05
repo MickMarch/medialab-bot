@@ -40,10 +40,15 @@ async def test_get_paths_are_built_from_the_shared_prefix(client, call, expected
     ("call", "expected"),
     [
         (lambda c: c.retry_job("j1"), "/jobs/j1/retry"),
-        (lambda c: c.download("magnet:?x", MediaType.SHOW, 5), "/download"),
     ],
 )
 async def test_post_paths_are_built_from_the_shared_prefix(client, call, expected) -> None:
     client._post = AsyncMock(return_value=None)
     await call(client)
     assert client._post.call_args.args[0] == f"{API_PREFIX}{expected}"
+
+
+async def test_download_path_is_built_from_the_shared_prefix(client) -> None:
+    client._post_or_error = AsyncMock(return_value=None)
+    await client.download("magnet:?x", MediaType.SHOW, 5)
+    assert client._post_or_error.call_args.args[0] == f"{API_PREFIX}/download"

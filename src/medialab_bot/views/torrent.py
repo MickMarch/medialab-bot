@@ -2,8 +2,13 @@ import discord
 from medialab_contracts import MediaType
 
 from medialab_bot.client import OrchestratorClient
-from medialab_bot.constants import DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH
+from medialab_bot.constants import (
+    DISCORD_SELECT_OPTION_MAX_LABEL_LENGTH,
+    RETRYABLE_ERROR_CODES,
+)
 from medialab_bot.format import format_size
+from medialab_bot.schemas.downloads import DownloadResponse
+from medialab_bot.schemas.errors import GatewayError
 from medialab_bot.schemas.torrents import TorrentResult
 
 
@@ -167,8 +172,8 @@ class TorrentSelectMenu(discord.ui.View):
             season=self._season,
             episode=self._episode,
         )
-        if response is None:
-            await interaction.followup.send(await self._failure_message(), ephemeral=True)
+        if not isinstance(response, DownloadResponse):
+            await interaction.followup.send(await self._failure_message(response), ephemeral=True)
             return
 
         await interaction.followup.send(
@@ -177,10 +182,13 @@ class TorrentSelectMenu(discord.ui.View):
             ephemeral=True,
         )
 
-    async def _failure_message(self) -> str:
-        """Why a download was refused, when the gateway can say: an unbound VPN
-        is the one cause worth naming, since the downloader refuses every
-        download until it is bound again."""
+    async def _failure_message(self, refusal: GatewayError | None) -> str:
+        """Why a download was refused, when the gateway can say. A retryable
+        refusal carries its own detail. Otherwise an unbound VPN is the one
+        cause worth naming, since the downloader refuses every download until
+        it is bound again."""
+        if refusal is not None and refusal.code in RETRYABLE_ERROR_CODES:
+            return refusal.detail
         health = await self._client.health()
         if health is not None and not health.vpn_interface_bound:
             return VPN_NOT_BOUND_MESSAGE

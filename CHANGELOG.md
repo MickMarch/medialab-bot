@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- A download the gateway refuses with a retryable code (`SOURCE_UNREACHABLE`,
+  `TMDB_UNAVAILABLE`) shows the gateway's own detail instead of the generic
+  failure message, without probing `/health`. The client returns a
+  `GatewayError` for a parsed error envelope; other codes keep today's
+  messages.
+
 ## [2.16.0] - 2026-10-04
 
 ### Added

@@ -6,6 +6,7 @@ from medialab_contracts import MediaType, PosterSize, WatchlistKind, poster_url
 from medialab_bot.cogs.search import SearchCog
 from medialab_bot.constants import FOLLOWING_MARKER, IN_LIBRARY_MARKER, SAVED_MARKER
 from medialab_bot.schemas.downloads import DownloadResponse
+from medialab_bot.schemas.errors import GatewayError
 from medialab_bot.schemas.jobs import JobView
 from medialab_bot.schemas.tmdb import TmdbSearchResponse, TmdbSearchResult
 from medialab_bot.schemas.torrents import TorrentResult, TorrentSearchResponse
@@ -582,6 +583,46 @@ async def test_torrent_select_explains_a_failed_download_when_vpn_is_not_bound(
     message = interaction.followup.send.call_args.args[0]
     assert "VPN" in message
     assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+
+
+@pytest.mark.asyncio
+async def test_torrent_select_shows_the_detail_for_a_retryable_code(mock_client, mock_config):
+    groups = {"1080p": [_make_torrent_result(magnet="magnet:?xt=urn:btih:abc")]}
+    mock_client.download = AsyncMock(
+        return_value=GatewayError(
+            status_code=503,
+            code="SOURCE_UNREACHABLE",
+            detail="The source page could not be reached; the request can be retried.",
+        )
+    )
+    mock_client.health = AsyncMock()
+    view = _torrent_view(groups, mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["1080p:0"]})
+
+    await view.select.callback(interaction)
+
+    message = interaction.followup.send.call_args.args[0]
+    assert "could not be reached" in message
+    assert interaction.followup.send.call_args.kwargs.get("ephemeral") is True
+    mock_client.health.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_torrent_select_keeps_the_generic_error_for_an_unknown_code(mock_client, mock_config):
+    groups = {"1080p": [_make_torrent_result(magnet="magnet:?xt=urn:btih:abc")]}
+    mock_client.download = AsyncMock(
+        return_value=GatewayError(status_code=500, code="INTERNAL_ERROR", detail="/srv/secret")
+    )
+    view = _torrent_view(groups, mock_client, mock_config)
+    interaction = make_interaction()
+    interaction.configure_mock(data={"values": ["1080p:0"]})
+
+    await view.select.callback(interaction)
+
+    message = interaction.followup.send.call_args.args[0]
+    assert "/srv/secret" not in message
+    assert "try again" in message.lower()
 
 
 @pytest.mark.asyncio
