@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `/settings show`, `/settings set <service> <key> <value>` and
+  `/settings reset <service> <key>`: the suite's runtime settings from Discord,
+  through the gateway's `/settings` routes. Service and key are autocompleted;
+  every reply states when the change applies.
+
 ## [2.17.0] - 2026-10-05
 
 ### Changed

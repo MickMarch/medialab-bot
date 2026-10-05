@@ -9,6 +9,7 @@ from medialab_bot.cogs.delete import DeleteCog
 from medialab_bot.cogs.discover import DiscoverCog
 from medialab_bot.cogs.jobs import JobsCog
 from medialab_bot.cogs.search import SearchCog
+from medialab_bot.cogs.settings import SettingsCog
 from medialab_bot.cogs.status import StatusCog
 from medialab_bot.config import AppConfig
 from medialab_bot.startup import RetryPolicy, start_with_retry
@@ -54,6 +55,7 @@ async def _run(config: AppConfig) -> None:
                 await self.add_cog(JobsCog(client))
                 await self.add_cog(DeleteCog(client))
                 await self.add_cog(DiscoverCog(client, config))
+                await self.add_cog(SettingsCog(client))
                 self.tree.copy_global_to(guild=guild)
                 synced = await self.tree.sync(guild=guild)
                 logger.info(

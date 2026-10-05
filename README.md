@@ -46,6 +46,9 @@ The bot runs as a container from the workspace `docker-compose.yml`; see the
 | `/storage` | Disk usage. | `GET /storage` |
 | `/delete` | Undo a download at any stage. Three steps: pick it (`Title (Year)`, then status, date and release name so copies differ), review the exact paths, press the red Delete button (60 s). Nothing is touched before that button. Ephemeral. | `GET /jobs`, `GET /jobs/{id}/deletion-plan`, `DELETE /jobs/{id}` |
 | `/stop-seeding` | Pause every completed (seeding) torrent; downloads untouched. Ephemeral. | `POST /transfers/stop-seeding` |
+| `/settings show` | Every service's runtime settings with the effective value; overrides marked. Ephemeral. | `GET /settings` |
+| `/settings set <service> <key> <value>` | Override one setting (service and key autocompleted from the gateway). The reply states the new value and when it applies; a refused value (unknown key, out of bounds) says so. Ephemeral. | `PUT /settings/{service}/{key}` |
+| `/settings reset <service> <key>` | Drop the override; the reply states the restored value and when it applies. Ephemeral. | `DELETE /settings/{service}/{key}` |
 
 All routes are under `/api/v1` on the orchestrator. Rate-limit `429`s carry
 `Retry-After` and are surfaced to the user. Startup logs the gateway's

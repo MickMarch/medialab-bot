@@ -28,6 +28,7 @@ def test_sends_the_shared_api_key_header(client: OrchestratorClient) -> None:
         (lambda c: c.search_tmdb_movie(1), f"/search/tmdb/{MediaType.MOVIE.value}/1"),
         (lambda c: c.search_tmdb_show(2), f"/search/tmdb/{MediaType.SHOW.value}/2"),
         (lambda c: c.search_torrents("x", MediaType.MOVIE), "/search/torrents"),
+        (lambda c: c.get_settings(), "/settings"),
     ],
 )
 async def test_get_paths_are_built_from_the_shared_prefix(client, call, expected) -> None:
@@ -46,6 +47,16 @@ async def test_post_paths_are_built_from_the_shared_prefix(client, call, expecte
     client._post = AsyncMock(return_value=None)
     await call(client)
     assert client._post.call_args.args[0] == f"{API_PREFIX}{expected}"
+
+
+async def test_setting_paths_are_built_from_the_shared_prefix(client) -> None:
+    client._put = AsyncMock(return_value=None)
+    client._delete = AsyncMock(return_value=None)
+    await client.set_setting("svc", "k", "v")
+    await client.reset_setting("svc", "k")
+    assert client._put.call_args.args[0] == f"{API_PREFIX}/settings/svc/k"
+    assert client._put.call_args.kwargs["json"] == {"value": "v"}
+    assert client._delete.call_args.args[0] == f"{API_PREFIX}/settings/svc/k"
 
 
 async def test_download_path_is_built_from_the_shared_prefix(client) -> None:

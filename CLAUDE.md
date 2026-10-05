@@ -56,10 +56,11 @@ src/medialab_bot/
 ├── media.py       TMDB media type -> contracts MediaType
 ├── client/        OrchestratorClient as mixins: _base (GET/POST/parse), _tmdb,
 │                  _torrents (search + download), _status (health/transfers/storage), _jobs,
-│                  _discover (discover, genres, watchlist, follow)
+│                  _discover (discover, genres, watchlist, follow), _settings (suite settings)
 ├── schemas/       tmdb, torrents, transfers, jobs, system, downloads, actions, deletion, errors
 ├── cogs/          search (/search), status (/transfers, /storage, /stop-seeding), jobs (/jobs),
-│                delete (/delete), discover (/popular, /watchlist)
+│                delete (/delete), discover (/popular, /watchlist),
+│                settings (/settings show|set|reset; service and key autocompleted)
 ├── views/         tmdb (TmdbSelectMenu), scope (season/episode pickers),
 │                  torrent (TorrentSelectMenu + run_torrent_search), jobs (JobRetryView: retry or
 │                  dismiss a flagged job),
@@ -71,7 +72,8 @@ tests/
 ├── conftest.py    mock client + mock interactions
 ├── helpers.py
 ├── test_client.py test_schemas.py test_embeds.py test_media.py
-└── cogs/          test_search, test_scope, test_status, test_jobs, test_delete, test_discover
+└── cogs/          test_search, test_scope, test_status, test_jobs, test_delete, test_discover,
+                   test_settings
 ```
 
 ## Testing patterns
