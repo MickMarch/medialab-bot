@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.0] - 2026-10-05
+
 ### Changed
 
 - A download the gateway refuses with a retryable code (`SOURCE_UNREACHABLE`,
