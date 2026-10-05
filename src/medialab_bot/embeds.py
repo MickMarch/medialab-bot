@@ -1,5 +1,11 @@
 import discord
-from medialab_contracts import PosterSize, WatchlistKind, poster_url
+from medialab_contracts import (
+    PosterSize,
+    SettingSource,
+    SuiteSettingsResponse,
+    WatchlistKind,
+    poster_url,
+)
 
 from medialab_bot.constants import DISCORD_EMBED_MAX_FIELDS, WATCHLIST_MARKERS
 from medialab_bot.format import format_progress
@@ -66,6 +72,20 @@ def storage_embed(response: DiskUsageResponse) -> discord.Embed:
         inline=True,
     )
     embed.add_field(name="Free", value=f"{response.free_gb:.1f} GB", inline=True)
+    return embed
+
+
+def settings_embed(response: SuiteSettingsResponse) -> discord.Embed:
+    """One field per service; one line per setting with its effective value
+    and, when it is an override, a marker so the row reads as changed."""
+    embed = discord.Embed(title="Settings", color=discord.Color.blue())
+    for service, settings in response.services.items():
+        lines = [
+            f"`{s.key}` = **{s.value}**"
+            + (f" ({SettingSource.OVERRIDE.value})" if s.source is SettingSource.OVERRIDE else "")
+            for s in settings
+        ]
+        embed.add_field(name=service, value="\n".join(lines) or "none", inline=False)
     return embed
 
 
