@@ -1,4 +1,4 @@
-from medialab_contracts import API_PREFIX
+from medialab_contracts import API_PREFIX, CredentialState
 
 from medialab_bot.client._base import _BaseClient
 from medialab_bot.schemas.actions import ActionResponse
@@ -21,6 +21,12 @@ class _StatusMixin(_BaseClient):
         # The gateway resolves the storage path itself; no path arg from the bot.
         data = await self._get(f"{API_PREFIX}/storage")
         return self._parse(DiskUsageResponse, data)
+
+    async def report_credential(self, name: str, state: CredentialState) -> bool:
+        """Tell the gateway what this client observed about a credential it holds."""
+        return await self._post_no_content(
+            f"{API_PREFIX}/credentials/{name}", json=state.model_dump(mode="json")
+        )
 
     async def stop_seeding(self) -> ActionResponse | None:
         # Pauses every seeding (completed) torrent; never touches an in-progress

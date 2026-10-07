@@ -14,8 +14,11 @@ import asyncio
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Protocol
 
 import aiohttp
+from medialab_contracts import CREDENTIAL_DISCORD_TOKEN, CredentialState, CredentialStatus
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +78,21 @@ async def start_with_retry(
                 delay,
             )
             await sleep(delay)
+
+
+class _CredentialReporter(Protocol):
+    async def report_credential(self, name: str, state: CredentialState) -> bool: ...
+
+
+async def report_login(client: _CredentialReporter, ok: bool, detail: str = "") -> None:
+    """Record the Discord login result with the gateway: the one owner of the token
+    with no HTTP surface of its own. Never raises; a failed report is only logged."""
+    status = CredentialStatus.OK if ok else CredentialStatus.INVALID
+    state = CredentialState(status=status, checked_at=datetime.now(UTC), detail=detail)
+    try:
+        reported = await client.report_credential(CREDENTIAL_DISCORD_TOKEN, state)
+    except Exception as exc:  # noqa: BLE001 - reporting must never affect the login path
+        logger.warning("Could not report the Discord login result: %s", exc)
+        return
+    if not reported:
+        logger.warning("Gateway did not accept the Discord login report")

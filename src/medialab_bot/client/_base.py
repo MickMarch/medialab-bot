@@ -137,6 +137,21 @@ class _BaseClient:
             logger.error("PUT %s returned non-JSON response", path)
             return None
 
+    async def _post_no_content(self, path: str, json: dict, timeout: float | None = None) -> bool:
+        """POST that expects 204 and no body; True on success."""
+        try:
+            response = await self._http.post(path, json=json, timeout=timeout)
+        except httpx.TimeoutException:
+            logger.warning("POST %s timed out", path)
+            return False
+        except (httpx.ConnectError, httpx.HTTPError):
+            logger.warning("POST %s failed with network error", path)
+            return False
+        if response.status_code != httpx.codes.NO_CONTENT:
+            logger.warning("POST %s returned %d", path, response.status_code)
+            return False
+        return True
+
     async def _delete_no_content(self, path: str, timeout: float | None = None) -> bool:
         """DELETE that expects 204 and no body; True on success."""
         try:

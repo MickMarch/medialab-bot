@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The bot reports its Discord login result to the gateway
+  (`POST /credentials/discord_token`): `ok` once logged in, `invalid` with the
+  failure detail when the token is refused, so a dead token is announced even
+  though Discord itself cannot carry the message (MickMarch/medialab#136).
+
+### Changed
+
+- medialab-contracts pin moved to the release carrying the credential models.
+
 ## [2.18.0] - 2026-10-05
 
 ### Added

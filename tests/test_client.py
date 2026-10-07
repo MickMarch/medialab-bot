@@ -3,6 +3,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from medialab_contracts import (
+    CREDENTIAL_DISCORD_TOKEN,
+    CredentialState,
+    CredentialStatus,
     DiscoverResponse,
     FollowRequest,
     FollowStart,
@@ -618,3 +621,17 @@ async def test_unfollow_show_true_on_204(client):
 async def test_unfollow_show_false_on_error(client):
     with patch.object(client._http, "delete", new=AsyncMock(return_value=_mock_response(500))):
         assert await client.unfollow_show(7) is False
+
+
+async def test_report_credential_posts_the_state_and_expects_no_content(client):
+    state = CredentialState(status=CredentialStatus.INVALID, detail="LoginFailure")
+    client._http.post = AsyncMock(return_value=httpx.Response(204))
+    assert await client.report_credential(CREDENTIAL_DISCORD_TOKEN, state) is True
+    path = client._http.post.await_args.args[0]
+    assert path.endswith(f"/credentials/{CREDENTIAL_DISCORD_TOKEN}")
+    assert client._http.post.await_args.kwargs["json"]["status"] == "invalid"
+
+
+async def test_report_credential_is_false_on_any_other_status(client):
+    client._http.post = AsyncMock(return_value=httpx.Response(422))
+    assert await client.report_credential(CREDENTIAL_DISCORD_TOKEN, CredentialState()) is False

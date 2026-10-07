@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import discord
+from discord.errors import LoginFailure
 from discord.ext import commands
 
 from medialab_bot.client import OrchestratorClient
@@ -12,7 +13,7 @@ from medialab_bot.cogs.search import SearchCog
 from medialab_bot.cogs.settings import SettingsCog
 from medialab_bot.cogs.status import StatusCog
 from medialab_bot.config import AppConfig
-from medialab_bot.startup import RetryPolicy, start_with_retry
+from medialab_bot.startup import RetryPolicy, report_login, start_with_retry
 
 
 async def _run(config: AppConfig) -> None:
@@ -69,6 +70,7 @@ async def _run(config: AppConfig) -> None:
         @bot.event
         async def on_ready() -> None:
             logger.info("Logged in as %s", bot.user)
+            await report_login(client, ok=True)
 
         policy = RetryPolicy(
             max_attempts=config.login_max_attempts,
@@ -77,6 +79,9 @@ async def _run(config: AppConfig) -> None:
         )
         try:
             await start_with_retry(lambda: bot.start(config.discord_token), policy)
+        except LoginFailure as exc:
+            await report_login(client, ok=False, detail=str(exc))
+            raise
         finally:
             logger.info("bot shutting down")
 
