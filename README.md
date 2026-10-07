@@ -52,7 +52,10 @@ The bot runs as a container from the workspace `docker-compose.yml`; see the
 
 All routes are under `/api/v1` on the orchestrator. Rate-limit `429`s carry
 `Retry-After` and are surfaced to the user. Startup logs the gateway's
-aggregated health (`GET /health`).
+aggregated health (`GET /health`). After login the bot reports its Discord token
+state to the gateway (`POST /credentials/discord_token`), the one credential the
+workers cannot check; a refused token is reported as `invalid` before the process
+exits.
 
 Deferred: `/similar` (awaits a TMDB passthrough on the gateway);
 `/torrent` raw search without TMDB (tracked as

@@ -6,8 +6,9 @@ from unittest.mock import AsyncMock
 import aiohttp
 import pytest
 from discord.errors import LoginFailure
+from medialab_contracts import CREDENTIAL_DISCORD_TOKEN, CredentialStatus
 
-from medialab_bot.startup import RetryPolicy, start_with_retry
+from medialab_bot.startup import RetryPolicy, report_login, start_with_retry
 
 POLICY = RetryPolicy(max_attempts=4, base_delay_seconds=1.0, max_delay_seconds=5.0)
 
@@ -78,3 +79,31 @@ def test_policy_rejects_nonsense() -> None:
         RetryPolicy(max_attempts=3, base_delay_seconds=0.0, max_delay_seconds=5.0)
     with pytest.raises(ValueError):
         RetryPolicy(max_attempts=3, base_delay_seconds=6.0, max_delay_seconds=5.0)
+
+
+async def test_report_login_posts_ok_after_a_successful_login() -> None:
+    client = AsyncMock()
+    client.report_credential.return_value = True
+    await report_login(client, ok=True)
+    name, state = client.report_credential.await_args.args
+    assert name == CREDENTIAL_DISCORD_TOKEN
+    assert state.status is CredentialStatus.OK
+    assert state.checked_at is not None
+
+
+async def test_report_login_posts_invalid_with_the_failure_detail() -> None:
+    client = AsyncMock()
+    client.report_credential.return_value = True
+    await report_login(client, ok=False, detail="Improper token has been passed.")
+    _, state = client.report_credential.await_args.args
+    assert state.status is CredentialStatus.INVALID
+    assert "Improper token" in state.detail
+
+
+async def test_report_login_never_raises() -> None:
+    client = AsyncMock()
+    client.report_credential.side_effect = RuntimeError("gateway down")
+    await report_login(client, ok=True)
+    client.report_credential.return_value = False
+    client.report_credential.side_effect = None
+    await report_login(client, ok=True)
