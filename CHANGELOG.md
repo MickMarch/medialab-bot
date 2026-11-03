@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- certifi 2026.10.23 (pip-audit).
+- certifi 2026.10.23 and aiohttp 3.14.4 (pip-audit).
 
 ## [2.19.0] - 2026-10-07
 
